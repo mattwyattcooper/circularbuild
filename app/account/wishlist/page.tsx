@@ -22,6 +22,13 @@ type SavedListing = {
   } | null;
 };
 
+type WishlistRow = {
+  id: string;
+  listing_id: string;
+  created_at: string;
+  listing: SavedListing["listing"] | SavedListing["listing"][];
+};
+
 export default function WishlistPage() {
   const authStatus = useRequireAuth();
   const [rows, setRows] = useState<SavedListing[]>([]);
@@ -49,10 +56,10 @@ export default function WishlistPage() {
         setMsg(`Could not load wishlist: ${error.message}`);
         setRows([]);
       } else {
-        const normalized = (data ?? []).map((row: any) => {
+        const normalized = (data ?? []).map((row: WishlistRow) => {
           const listingValue = Array.isArray(row.listing)
-            ? row.listing[0] ?? null
-            : row.listing ?? null;
+            ? (row.listing[0] ?? null)
+            : (row.listing ?? null);
           return {
             id: row.id,
             listing_id: row.listing_id,

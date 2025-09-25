@@ -3,13 +3,13 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl) {
+const supabaseUrlEnv = process.env.NEXT_PUBLIC_SUPABASE_URL;
+if (!supabaseUrlEnv) {
   throw new Error("NEXT_PUBLIC_SUPABASE_URL is not configured");
 }
+const supabaseUrl = supabaseUrlEnv;
 
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!serviceRoleKey) {
   console.warn(
     "SUPABASE_SERVICE_ROLE_KEY is missing; profile init API will fail.",
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing id" }, { status: 400 });
     }
 
-    const supabaseAdmin = createClient(supabaseUrl!, serviceRoleKey!);
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     const { error } = await supabaseAdmin.from("profiles").upsert({
       id,
