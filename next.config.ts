@@ -1,10 +1,11 @@
 import type { NextConfig } from "next";
+import type { RemotePattern } from "next/dist/shared/lib/image-config";
 
 const supabaseDomain = process.env.NEXT_PUBLIC_SUPABASE_URL
   ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
   : undefined;
 
-const remotePatterns = [
+const remotePatterns: RemotePattern[] = [
   {
     protocol: "https",
     hostname: "images.unsplash.com",

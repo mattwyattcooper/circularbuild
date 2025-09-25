@@ -49,7 +49,18 @@ export default function WishlistPage() {
         setMsg(`Could not load wishlist: ${error.message}`);
         setRows([]);
       } else {
-        setRows(data as SavedListing[]);
+        const normalized = (data ?? []).map((row: any) => {
+          const listingValue = Array.isArray(row.listing)
+            ? row.listing[0] ?? null
+            : row.listing ?? null;
+          return {
+            id: row.id,
+            listing_id: row.listing_id,
+            created_at: row.created_at,
+            listing: listingValue,
+          } satisfies SavedListing;
+        });
+        setRows(normalized);
       }
       setLoading(false);
     })();
