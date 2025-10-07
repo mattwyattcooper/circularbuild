@@ -1,11 +1,11 @@
 // app/news/page.tsx
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
-import Image from "next/image";
 import Link from "next/link";
 
 import NewsNotificationPrompt from "./notification-prompt";
-import NewPostForm from "./post-form";
+import PostCard from "./post-card";
+import PostForm from "./post-form";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +67,7 @@ export default async function NewsPage() {
 
   const { data: posts, error: postsErr } = await supabase
     .from("news_posts")
-    .select("id, title, body, created_at, cover_image_url")
+    .select("id, title, body, created_at, cover_image_url, author_id")
     .order("created_at", { ascending: false });
 
   let isAdmin = false;
@@ -129,7 +129,7 @@ export default async function NewsPage() {
             Share an industry update, donor success, or policy milestone.
             Readers can opt into push notifications to stay up to speed.
           </p>
-          <NewPostForm />
+          <PostForm />
         </div>
       )}
 
@@ -143,53 +143,15 @@ export default async function NewsPage() {
         {(posts ?? []).map((post) => {
           const readMinutes = estimateReadMinutes(post.body ?? "");
           const excerpt = buildExcerpt(post.body ?? "");
+          const canEdit = isAdmin || post.author_id === session.user?.id;
           return (
-            <article
+            <PostCard
               key={post.id}
-              className="flex h-full flex-col overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-            >
-              {post.cover_image_url ? (
-                <div className="relative aspect-[16/9] w-full">
-                  <Image
-                    src={post.cover_image_url}
-                    alt={post.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                  />
-                </div>
-              ) : (
-                <div className="flex h-36 items-center justify-center bg-emerald-50 text-sm text-emerald-600">
-                  CircularBuild News
-                </div>
-              )}
-
-              <div className="flex flex-1 flex-col gap-4 p-5">
-                <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-wide text-emerald-600">
-                    {new Date(post.created_at).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </p>
-                  <h2 className="text-xl font-semibold text-emerald-800">
-                    {post.title}
-                  </h2>
-                  <p className="text-sm text-gray-600">{excerpt}</p>
-                </div>
-
-                <div className="mt-auto flex items-center justify-between text-xs text-gray-500">
-                  <span>{readMinutes} min read</span>
-                  <Link
-                    href={`/news/${post.id}`}
-                    className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700"
-                  >
-                    Read briefing
-                  </Link>
-                </div>
-              </div>
-            </article>
+              post={post}
+              readMinutes={readMinutes}
+              excerpt={excerpt}
+              canEdit={canEdit}
+            />
           );
         })}
       </div>
