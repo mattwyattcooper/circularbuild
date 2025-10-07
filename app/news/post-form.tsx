@@ -11,6 +11,7 @@ type Props = {
 export default function NewPostForm({ onCreated }: Props) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
   const [msg, setMsg] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
@@ -28,12 +29,14 @@ export default function NewPostForm({ onCreated }: Props) {
       const { error } = await supabase.from("news_posts").insert({
         title: title.trim(),
         body: body.trim(),
+        cover_image_url: coverImageUrl.trim() || null,
         author_id: uid,
       });
       if (error) throw error;
 
       setTitle("");
       setBody("");
+      setCoverImageUrl("");
       setMsg("Post published.");
       onCreated?.();
       router.refresh();
@@ -51,6 +54,7 @@ export default function NewPostForm({ onCreated }: Props) {
       <h2 className="text-lg font-medium">Share a new update</h2>
       <p className="mt-1 text-xs text-gray-500">
         Highlight waste diversion wins, industry trends, or project spotlights.
+        Use Markdown (headings, lists, images) or HTML snippets for embeds.
       </p>
       <div className="mt-4 space-y-3">
         <input
@@ -59,9 +63,23 @@ export default function NewPostForm({ onCreated }: Props) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
+        <input
+          className="w-full rounded-lg border px-3 py-2"
+          placeholder="Cover image URL (optional)"
+          value={coverImageUrl}
+          onChange={(e) => setCoverImageUrl(e.target.value)}
+        />
         <textarea
-          className="min-h-[160px] w-full rounded-lg border px-3 py-2"
-          placeholder="Write your story..."
+          className="min-h-[200px] w-full rounded-lg border px-3 py-2 font-mono text-sm"
+          placeholder="Write your story...
+
+Examples:
+## Headline
+Share narrative with **bold** insights, bullet points, and more.
+
+![Reclaimed timber](https://example.com/photo.jpg)
+
+<iframe src='https://charts.example.com/embed/123' height='320'></iframe>"
           value={body}
           onChange={(e) => setBody(e.target.value)}
         />
@@ -73,6 +91,7 @@ export default function NewPostForm({ onCreated }: Props) {
           onClick={() => {
             setTitle("");
             setBody("");
+            setCoverImageUrl("");
           }}
         >
           Clear

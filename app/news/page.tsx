@@ -1,11 +1,30 @@
 // app/news/page.tsx
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
+import Image from "next/image";
 import Link from "next/link";
+
 import NewsNotificationPrompt from "./notification-prompt";
 import NewPostForm from "./post-form";
 
 export const dynamic = "force-dynamic";
+
+function estimateReadMinutes(body: string) {
+  const words = body.trim().split(/\s+/).filter(Boolean);
+  return Math.max(1, Math.ceil(words.length / 200));
+}
+
+function buildExcerpt(body: string, limit = 220) {
+  const plain = body
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`[^`]*`/g, "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[[^\]]*\]\(([^)]*)\)/g, "$1")
+    .replace(/[#>*_~`-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return plain.length > limit ? `${plain.slice(0, limit - 1)}…` : plain;
+}
 
 export default async function NewsPage() {
   const cookieStore = cookies();
@@ -17,7 +36,7 @@ export default async function NewsPage() {
 
   if (!session) {
     return (
-      <div className="max-w-xl mx-auto py-16 px-6 text-center">
+      <div className="mx-auto max-w-xl px-6 py-16 text-center">
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-10 text-amber-900">
           <h2 className="text-xl font-semibold text-emerald-700">
             Sign in to follow industry updates
@@ -46,13 +65,11 @@ export default async function NewsPage() {
     );
   }
 
-  // fetch posts (latest first)
   const { data: posts, error: postsErr } = await supabase
     .from("news_posts")
-    .select("id, title, body, created_at, author_id")
+    .select("id, title, body, created_at, cover_image_url")
     .order("created_at", { ascending: false });
 
-  // determine admin
   let isAdmin = false;
   if (session?.user?.id) {
     const { data: profile } = await supabase
@@ -64,7 +81,7 @@ export default async function NewsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4 py-10">
+    <div className="mx-auto max-w-5xl space-y-8 px-4 py-10">
       <section className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-800 p-8 text-white shadow-sm">
         <span className="inline-flex rounded-full bg-white/20 px-4 py-1 text-xs font-semibold uppercase tracking-wide">
           CircularBuild briefing
@@ -116,35 +133,73 @@ export default async function NewsPage() {
         </div>
       )}
 
-      <div className="space-y-6">
-        {postsErr && (
-          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
-            Failed to load posts.
-          </p>
-        )}
-        {posts?.map((p) => (
-          <article
-            key={p.id}
-            className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm"
-          >
-            <h2 className="text-lg font-semibold text-emerald-700">
-              {p.title}
-            </h2>
-            <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">
-              {p.body}
-            </p>
-            <p className="mt-3 text-xs uppercase tracking-wide text-gray-500">
-              {new Date(p.created_at).toLocaleString()}
-            </p>
-          </article>
-        ))}
-        {(!posts || posts.length === 0) && (
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 text-sm text-emerald-800">
-            No news yet. When new circular construction stories land, they will
-            appear here first.
-          </div>
-        )}
+      {postsErr && (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+          Failed to load posts.
+        </p>
+      )}
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {(posts ?? []).map((post) => {
+          const readMinutes = estimateReadMinutes(post.body ?? "");
+          const excerpt = buildExcerpt(post.body ?? "");
+          return (
+            <article
+              key={post.id}
+              className="flex h-full flex-col overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+            >
+              {post.cover_image_url ? (
+                <div className="relative aspect-[16/9] w-full">
+                  <Image
+                    src={post.cover_image_url}
+                    alt={post.title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                  />
+                </div>
+              ) : (
+                <div className="flex h-36 items-center justify-center bg-emerald-50 text-sm text-emerald-600">
+                  CircularBuild News
+                </div>
+              )}
+
+              <div className="flex flex-1 flex-col gap-4 p-5">
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-wide text-emerald-600">
+                    {new Date(post.created_at).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                  <h2 className="text-xl font-semibold text-emerald-800">
+                    {post.title}
+                  </h2>
+                  <p className="text-sm text-gray-600">{excerpt}</p>
+                </div>
+
+                <div className="mt-auto flex items-center justify-between text-xs text-gray-500">
+                  <span>{readMinutes} min read</span>
+                  <Link
+                    href={`/news/${post.id}`}
+                    className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700"
+                  >
+                    Read briefing
+                  </Link>
+                </div>
+              </div>
+            </article>
+          );
+        })}
       </div>
+
+      {(!posts || posts.length === 0) && !postsErr && (
+        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 text-sm text-emerald-800">
+          No news yet. When new circular construction stories land, they will
+          appear here first.
+        </div>
+      )}
     </div>
   );
 }
