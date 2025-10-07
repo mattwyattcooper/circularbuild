@@ -1,14 +1,12 @@
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import type { Schema } from "hast-util-sanitize";
 import { cookies } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
-import rehypeSanitize, {
-  defaultSchema,
-  type Options as RehypeSanitizeOptions,
-} from "rehype-sanitize";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +18,7 @@ type NewsPost = {
   cover_image_url: string | null;
 };
 
-const markdownSchema: RehypeSanitizeOptions["schema"] = {
+const markdownSchema: Schema = {
   ...defaultSchema,
   tagNames: [
     ...(defaultSchema.tagNames ?? []),
