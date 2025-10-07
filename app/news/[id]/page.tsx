@@ -74,7 +74,7 @@ const markdownComponents: Components = {
     />
   ),
   img: ({ src, alt, width, height }) => {
-    if (!src) {
+    if (!src || typeof src !== "string") {
       return null;
     }
     const resolvedWidth =
