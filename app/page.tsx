@@ -88,7 +88,7 @@ export default function Home() {
               process kept everyone aligned.”
             </p>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">
-              Shannon Li · UrbanBuild Collaborative
+              Anonymous donor · California
             </p>
             <div className="grid grid-cols-3 gap-3 rounded-2xl bg-black/25 p-4 text-center text-sm">
               {stats.map((stat) => (
