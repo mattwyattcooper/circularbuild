@@ -1,5 +1,6 @@
 // app/layout.tsx
 import "./globals.css"; // makes Tailwind + global styles work
+import { Analytics } from "@vercel/analytics/react";
 import type { ReactNode } from "react";
 import Header from "../component/Header"; // path matches your folder name ("component")
 
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
         </footer>
+        <Analytics />
       </body>
     </html>
   );
