@@ -85,9 +85,9 @@ function AuthPageInner() {
   }, []);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50">
+    <main className="flex min-h-screen items-center justify-center bg-gray-50 text-slate-800">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow">
-        <h1 className="mb-4 text-xl font-bold">Account</h1>
+        <h1 className="mb-4 text-xl font-bold text-slate-900">Account</h1>
 
         {session ? (
           <div className="space-y-3">

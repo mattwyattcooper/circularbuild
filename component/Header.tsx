@@ -19,8 +19,8 @@ export default function Header() {
     match?: (current: string) => boolean;
   }> = [
     { label: "Who We Are", href: "/who-we-are" },
-    { label: "Donate", href: "/donate", requiresAuth: true },
     { label: "Search", href: "/search" },
+    { label: "Donate", href: "/donate", requiresAuth: true },
     {
       label: "Chats",
       href: "/chats",
