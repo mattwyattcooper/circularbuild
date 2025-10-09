@@ -45,6 +45,24 @@ const GUIDING_VALUES = [
   },
 ];
 
+const MATERIAL_CATEGORIES = [
+  {
+    title: "Wood & lumber",
+    description:
+      "Dimensional lumber, sheathing, and trim make up 40% of residential waste. Match offcuts with community crews instead of paying tipping fees.",
+  },
+  {
+    title: "Metals",
+    description:
+      "Steel and aluminum offcuts carry heavy embodied carbon. Reuse avoids smelting emissions and keeps local fabrication on schedule.",
+  },
+  {
+    title: "Finishes & fixtures",
+    description:
+      "Tile, windows, flooring, and cabinetry stretch nonprofit budgets and reduce trips to salvage yards.",
+  },
+];
+
 const STORY_POINTS = [
   {
     heading: "Built from the field up",
