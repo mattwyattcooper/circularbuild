@@ -113,7 +113,7 @@ export default async function NewsPage() {
         {(posts ?? []).map((post) => {
           const readMinutes = estimateReadMinutes(post.body ?? "");
           const excerpt = buildExcerpt(post.body ?? "");
-          const canEdit = isAdmin || post.author_id === session.user?.id;
+          const canEdit = isAdmin || post.author_id === session?.user?.id;
           return (
             <PostCard
               key={post.id}
