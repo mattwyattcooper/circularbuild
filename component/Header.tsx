@@ -48,22 +48,25 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3 lg:px-10">
+      <div className="mx-auto flex h-20 w-full max-w-6xl items-center justify-between px-6 lg:px-10">
         <Link
           href="/"
-          className="flex items-center gap-2 text-2xl font-semibold text-emerald-700"
+          aria-label="CircularBuild home"
+          className="group flex h-full items-center gap-2 text-2xl font-semibold text-emerald-700 transition"
         >
-          <span className="relative hidden h-10 w-36 overflow-hidden rounded-md border border-white/40 bg-white/10 sm:inline-flex">
+          <span className="relative hidden h-full w-48 overflow-hidden rounded-lg border border-emerald-100 bg-white/80 shadow-sm transition group-hover:border-emerald-300 group-hover:shadow-lg sm:inline-flex">
             <Image
               src="/logo.jpg"
               alt="CircularBuild logo"
               fill
               priority
-              sizes="144px"
-              className="object-cover object-center"
+              sizes="192px"
+              className="object-cover object-center transition-transform duration-300 group-hover:scale-[1.02]"
             />
           </span>
-          <span className="sm:hidden">CircularBuild</span>
+          <span className="rounded-lg border border-emerald-100 px-3 py-2 text-lg shadow-sm transition group-hover:border-emerald-300 group-hover:shadow-lg sm:hidden">
+            CircularBuild
+          </span>
         </Link>
 
         <nav className="flex items-center gap-2">

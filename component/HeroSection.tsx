@@ -46,14 +46,14 @@ export default function HeroSection({ stats }: Props) {
             Circular materials marketplace
           </span>
           <h1 className="text-[clamp(2.5rem,5vw,4.5rem)] font-extrabold leading-tight">
-            Route surplus away from landfill and into the projects that need it
-            most.
+            Construction waste doesn&apos;t have to be inevitable. We&apos;re
+            here to ensure that.
           </h1>
           <p className="max-w-2xl text-base leading-7 text-emerald-100">
-            CircularBuild connects contractors, fabricators, and community
-            builders with reuse-ready inventories. List donations in minutes,
-            preview nearby materials, and track diversion metrics right inside
-            the platform.
+            CircularBuild connects contractors, fabricators, and university labs
+            with reuse-ready inventories. List donations in minutes, preview
+            nearby materials, and track diversion metrics right inside the
+            platform.
           </p>
           <div className="flex flex-wrap gap-5 text-sm font-semibold">
             {HERO_LINKS.map((link) => (
