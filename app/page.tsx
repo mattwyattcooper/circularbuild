@@ -149,7 +149,7 @@ export default async function Home() {
         imageSrc="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Stacks of reclaimed timber organized inside a warehouse"
         overlayClassName="bg-slate-950/70"
-        className="mt-[-1px] pt-14 pb-8 md:pt-18 md:pb-10"
+        className="mt-[-1px] pt-4 pb-3 md:pt-6 md:pb-4"
         speed={0.2}
         maxOffset={180}
       >
@@ -206,7 +206,7 @@ export default async function Home() {
         imageSrc="https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Crew lifting reclaimed steel beams on a job site"
         overlayClassName="bg-emerald-950/70"
-        className="mt-[-1px] pt-10 pb-16 md:pt-14 md:pb-20"
+        className="mt-[-1px] pt-3 pb-5 md:pt-4 md:pb-6"
         speed={0.24}
         maxOffset={220}
       >
@@ -258,7 +258,7 @@ export default async function Home() {
         imageSrc="https://images.unsplash.com/photo-1451976426598-a7593bd6d0b2?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Community volunteers unloading reclaimed construction materials"
         overlayClassName="bg-slate-950/75"
-        className="mt-[-1px] pt-10 pb-14 md:pt-14 md:pb-18"
+        className="mt-[-1px] pt-3 pb-4 md:pt-4 md:pb-5"
         speed={0.22}
         maxOffset={200}
       >
