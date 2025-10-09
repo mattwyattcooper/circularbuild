@@ -47,7 +47,7 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-emerald-100 bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <Link
           href="/"
@@ -72,10 +72,10 @@ export default function Header() {
               ? item.match(pathname)
               : pathname === item.href;
             const baseClasses =
-              "rounded-full px-3 py-2 text-sm font-medium transition focus:outline-none";
+              "rounded-full px-3 py-2 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
             const activeClasses = isActive
               ? "bg-emerald-600 text-white shadow-sm"
-              : "text-gray-700 hover:bg-emerald-50 hover:text-emerald-700";
+              : "text-slate-600 hover:bg-emerald-50 hover:text-emerald-600";
 
             return (
               <button
@@ -83,8 +83,7 @@ export default function Header() {
                 type="button"
                 onClick={() => {
                   if (item.requiresAuth && !email) {
-                    window.alert("Please sign in to access this feature.");
-                    router.push("/auth");
+                    router.push(`/auth?next=${encodeURIComponent(item.href)}`);
                     return;
                   }
                   router.push(item.href);

@@ -2,11 +2,10 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import AuthWall from "@/component/AuthWall";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { supabase } from "../../lib/supabaseClient";
 
 const ListingMap = dynamic(() => import("@/component/ListingMap"), {
   ssr: false,
@@ -77,9 +76,18 @@ export default function SearchPage() {
     setWishlistIds(new Set((data ?? []).map((row) => row.listing_id)));
   }, []);
 
-  const runSearch = useCallback(
-    async (initial = false) => {
-      if (authStatus !== "authenticated") return;
+  const router = useRouter();
+  const isAuthenticated = authStatus === "authenticated";
+
+  const fetchListings = useCallback(
+    async (
+      options: {
+        initial?: boolean;
+        originLat?: number | null;
+        originLng?: number | null;
+      } = {},
+    ) => {
+      const { initial = false, originLat, originLng } = options;
       setLoading(true);
       setMsg(initial ? "" : "Searching...");
       try {
@@ -91,8 +99,8 @@ export default function SearchPage() {
             type: type || undefined,
             address: address.trim() || undefined,
             radiusMiles,
-            originLat: origin?.lat,
-            originLng: origin?.lng,
+            originLat: originLat ?? origin?.lat,
+            originLng: originLng ?? origin?.lng,
           }),
         });
         const data = await res.json();
@@ -116,15 +124,22 @@ export default function SearchPage() {
         setLoading(false);
       }
     },
-    [authStatus, q, type, address, radiusMiles, origin],
+    [address, origin, q, radiusMiles, type],
   );
 
+  const initialQueryLoaded = useRef(false);
   useEffect(() => {
-    if (authStatus === "authenticated") {
-      runSearch(true);
-      fetchWishlist();
+    if (authStatus === "checking") return;
+    if (!initialQueryLoaded.current) {
+      initialQueryLoaded.current = true;
+      void fetchListings({ initial: true });
     }
-  }, [authStatus, runSearch, fetchWishlist]);
+    if (authStatus === "authenticated") {
+      fetchWishlist();
+    } else {
+      setWishlistIds(new Set());
+    }
+  }, [authStatus, fetchListings, fetchWishlist]);
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -139,7 +154,7 @@ export default function SearchPage() {
         setLocStatus(
           `Using your current location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`,
         );
-        runSearch();
+        void fetchListings({ originLat: latitude, originLng: longitude });
       },
       (err) => {
         setLocStatus(
@@ -154,7 +169,7 @@ export default function SearchPage() {
     const { data: sess } = await supabase.auth.getSession();
     const uid = sess.session?.user.id;
     if (!uid) {
-      window.alert("Please sign in to save listings.");
+      router.push(`/auth?next=${encodeURIComponent("/search")}`);
       return;
     }
     const isSaved = wishlistIds.has(listingId);
@@ -186,18 +201,18 @@ export default function SearchPage() {
     }
   };
 
+  const handleViewListing = (listingId: string) => {
+    if (!isAuthenticated) {
+      router.push(`/auth?next=${encodeURIComponent(`/listing/${listingId}`)}`);
+      return;
+    }
+    router.push(`/listing/${listingId}`);
+  };
+
   if (authStatus === "checking") {
     return (
-      <main className="max-w-6xl mx-auto p-6 text-gray-900">
-        Checking authentication…
-      </main>
-    );
-  }
-
-  if (authStatus === "unauthenticated") {
-    return (
-      <main className="max-w-6xl mx-auto p-6 text-gray-900">
-        <AuthWall message="Sign in to browse available donations." />
+      <main className="mx-auto max-w-6xl p-6 text-slate-900">
+        Loading marketplace…
       </main>
     );
   }
@@ -219,7 +234,9 @@ export default function SearchPage() {
           <button
             type="button"
             className={`rounded-full px-4 py-1 text-sm ${
-              viewMode === "list" ? "bg-gray-900 text-white" : "text-gray-600"
+              viewMode === "list"
+                ? "bg-emerald-600 text-white"
+                : "text-slate-600 hover:text-emerald-600"
             }`}
             onClick={() => setViewMode("list")}
           >
@@ -228,7 +245,9 @@ export default function SearchPage() {
           <button
             type="button"
             className={`rounded-full px-4 py-1 text-sm ${
-              viewMode === "map" ? "bg-gray-900 text-white" : "text-gray-600"
+              viewMode === "map"
+                ? "bg-emerald-600 text-white"
+                : "text-slate-600 hover:text-emerald-600"
             }`}
             onClick={() => setViewMode("map")}
           >
@@ -237,7 +256,14 @@ export default function SearchPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-3 rounded-xl border border-emerald-100 bg-white p-4 md:grid-cols-5">
+      {!isAuthenticated && (
+        <div className="rounded-lg border border-gray-200 bg-emerald-50 px-4 py-3 text-sm text-slate-700">
+          Preview materials before you join. Create an account to save listings,
+          chat with donors, and arrange pickups.
+        </div>
+      )}
+
+      <div className="mt-6 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-5">
         <label className="flex flex-col gap-1 md:col-span-2">
           <span className="text-sm font-medium">Keywords</span>
           <input
@@ -295,8 +321,8 @@ export default function SearchPage() {
           </button>
           <button
             type="button"
-            className="rounded-lg bg-gray-900 px-3 py-2 text-sm text-white disabled:opacity-60"
-            onClick={() => runSearch()}
+            className="rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white transition hover:bg-emerald-700 disabled:opacity-60"
+            onClick={() => fetchListings()}
             disabled={loading}
           >
             {loading ? "Searching…" : "Apply filters"}
@@ -347,12 +373,13 @@ export default function SearchPage() {
                   Avail. until {l.available_until} • {l.location_text}
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Link
-                    href={`/listing/${l.id}`}
-                    className="rounded-lg bg-gray-900 px-3 py-2 text-white"
+                  <button
+                    type="button"
+                    className="rounded-lg bg-gray-900 px-3 py-2 text-white transition hover:bg-gray-800"
+                    onClick={() => handleViewListing(l.id)}
                   >
                     View listing
-                  </Link>
+                  </button>
                   <button
                     type="button"
                     className={`rounded-lg px-3 py-2 text-sm ${

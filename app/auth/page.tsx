@@ -1,7 +1,8 @@
 "use client";
 
 import type { Session } from "@supabase/supabase-js";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
 export default function AuthPage() {
@@ -10,12 +11,31 @@ export default function AuthPage() {
   const [name, setName] = useState("");
   const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [msg, setMsg] = useState("");
+  const searchParams = useSearchParams();
+  const nextPath = useMemo(() => {
+    const value = searchParams?.get("next") || "/";
+    return value.startsWith("/") ? value : "/";
+  }, [searchParams]);
 
   async function handleSubmit() {
     setMsg("");
     try {
+      const baseUrl = (
+        process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+      ).replace(/\/$/, "");
+      const redirectSuffix =
+        nextPath !== "/" ? `?next=${encodeURIComponent(nextPath)}` : "";
+      const emailRedirectTo = `${baseUrl}/auth${redirectSuffix}`;
+
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo,
+            data: name.trim() ? { full_name: name.trim() } : undefined,
+          },
+        });
         if (error) throw error;
         const user = data.user;
         if (user) {
@@ -29,7 +49,9 @@ export default function AuthPage() {
             console.error("Profile init failed", profileError);
           }
         }
-        setMsg("Account created. You can sign in now.");
+        setMsg(
+          `Check ${email} for a confirmation link. Once verified, sign in to continue.`,
+        );
         setMode("signin");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -37,8 +59,8 @@ export default function AuthPage() {
           password,
         });
         if (error) throw error;
-        setMsg("Signed in!");
-        window.location.href = "/"; // go home
+        setMsg("Signed in! Redirecting...");
+        window.location.href = nextPath;
       }
     } catch (error) {
       const message =

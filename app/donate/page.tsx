@@ -17,11 +17,6 @@ const MATERIALS = [
   "Other",
 ];
 
-const COUNT_OPTIONS = [
-  ...Array.from({ length: 50 }).map((_, idx) => String(idx + 1)),
-  "50+",
-];
-
 // ----- helpers -----
 function todayISO() {
   const d = new Date();
@@ -41,7 +36,7 @@ export default function DonatePage() {
   const [title, setTitle] = useState("");
   const [type, setType] = useState(MATERIALS[0]);
   const [shape, setShape] = useState("");
-  const [count, setCount] = useState(COUNT_OPTIONS[0]);
+  const [count, setCount] = useState<number>(1);
   const [available, setAvailable] = useState(daysFromNowISO(14)); // default 2 weeks ahead
   const [locationText, setLocationText] = useState("");
   const [description, setDescription] = useState("");
@@ -104,8 +99,7 @@ export default function DonatePage() {
         }
       }
 
-      const piecesCount =
-        count === "50+" ? 50 : Number.parseInt(count, 10) || 1;
+      const piecesCount = Number.isFinite(count) && count > 0 ? count : 1;
       const detailedDescription = `${description.trim()}
 
 ---
@@ -133,7 +127,7 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
       setTitle("");
       setType(MATERIALS[0]);
       setShape("");
-      setCount(COUNT_OPTIONS[0]);
+      setCount(1);
       setAvailable(daysFromNowISO(14));
       setLocationText("");
       setDescription("");
@@ -207,17 +201,24 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
 
             <label className="flex flex-col gap-1">
               <span className="text-sm font-medium">Number of pieces *</span>
-              <select
+              <input
+                type="number"
+                min={1}
+                max={9999}
                 className="rounded-lg border px-3 py-2"
                 value={count}
-                onChange={(e) => setCount(e.target.value)}
-              >
-                {COUNT_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+                onChange={(e) => {
+                  const value = Number.parseInt(e.target.value, 10);
+                  setCount(
+                    Number.isNaN(value)
+                      ? 1
+                      : Math.max(1, Math.min(9999, value)),
+                  );
+                }}
+              />
+              <span className="text-xs text-gray-500">
+                Use the best estimate if you are unsure.
+              </span>
             </label>
 
             <label className="flex flex-col gap-1">
