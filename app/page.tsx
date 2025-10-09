@@ -98,7 +98,7 @@ export default async function Home() {
   const hasLiveListings = cards.length > 0;
 
   return (
-    <main className="flex flex-col bg-white">
+    <main className="flex flex-col bg-slate-950">
       <HeroSection stats={FEATURED_STATS} />
 
       <section className="relative isolate w-full overflow-hidden bg-gradient-to-tr from-emerald-900 via-emerald-800 to-slate-900 py-12 text-white sm:py-14 lg:py-16">
@@ -149,7 +149,7 @@ export default async function Home() {
         imageSrc="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Stacks of reclaimed timber organized inside a warehouse"
         overlayClassName="bg-slate-950/70"
-        className="py-12 md:py-16"
+        className="mt-[-1px] pt-14 pb-8 md:pt-18 md:pb-10"
         speed={0.2}
         maxOffset={180}
       >
@@ -206,7 +206,7 @@ export default async function Home() {
         imageSrc="https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Crew lifting reclaimed steel beams on a job site"
         overlayClassName="bg-emerald-950/70"
-        className="py-14 md:py-20"
+        className="mt-[-1px] pt-10 pb-16 md:pt-14 md:pb-20"
         speed={0.24}
         maxOffset={220}
       >
@@ -231,21 +231,21 @@ export default async function Home() {
             </Link>
           </div>
           <div className="grid gap-4">
-            <article className="rounded-2xl border border-white/20 bg-white/90 p-6 text-slate-900 shadow-lg backdrop-blur-sm">
-              <h3 className="text-lg font-semibold">
+            <article className="rounded-2xl border border-white/30 bg-white/15 p-6 text-white shadow-lg backdrop-blur-xl">
+              <h3 className="text-lg font-semibold text-white">
                 Training center matches 4,500 sq ft of flooring within 48 hours.
               </h3>
-              <p className="mt-3 text-sm text-slate-600">
+              <p className="mt-3 text-sm text-emerald-50/90">
                 Verified pickup notes and auto-generated diversion metrics kept
                 40 students and nonprofit supervisors on schedule.
               </p>
             </article>
-            <article className="rounded-2xl border border-white/20 bg-white/90 p-6 text-slate-900 shadow-lg backdrop-blur-sm">
-              <h3 className="text-lg font-semibold">
+            <article className="rounded-2xl border border-white/30 bg-white/15 p-6 text-white shadow-lg backdrop-blur-xl">
+              <h3 className="text-lg font-semibold text-white">
                 Deconstruction partner diverts 22 tons of structural timber in
                 one weekend.
               </h3>
-              <p className="mt-3 text-sm text-slate-600">
+              <p className="mt-3 text-sm text-emerald-50/90">
                 Logistics templates, QR code check-ins, and in-app messaging
                 streamlined the entire handoff.
               </p>
@@ -258,7 +258,7 @@ export default async function Home() {
         imageSrc="https://images.unsplash.com/photo-1451976426598-a7593bd6d0b2?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Community volunteers unloading reclaimed construction materials"
         overlayClassName="bg-slate-950/75"
-        className="py-12 md:py-16"
+        className="mt-[-1px] pt-10 pb-14 md:pt-14 md:pb-18"
         speed={0.22}
         maxOffset={200}
       >
