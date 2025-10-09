@@ -207,8 +207,8 @@ export default function WhoWeArePage() {
       </ParallaxSection>
 
       <ParallaxSection
-        imageSrc="https://images.unsplash.com/photo-1531835551805-16d864c8dffe?auto=format&fit=crop&w=2400&q=80"
-        imageAlt="Stacked reclaimed timber ready for reuse"
+        imageSrc="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=2400&q=80"
+        imageAlt="Stacked reclaimed materials ready for distribution"
         overlayClassName="bg-emerald-950/75"
         className="mt-[-1px] py-14 sm:py-18"
         speed={0.24}
@@ -333,27 +333,6 @@ export default function WhoWeArePage() {
               success by the tonnage redirected from landfills and the projects
               made possible in classrooms, workshops, and communities worldwide.
             </p>
-          </div>
-        </div>
-      </ParallaxSection>
-
-      <ParallaxSection
-        imageSrc="https://images.unsplash.com/photo-1531835551805-16d864c8dffe?auto=format&fit=crop&w=2400&q=80"
-        imageAlt="Stacks of reclaimed wood ready for reuse"
-        overlayClassName="bg-emerald-950/75"
-        className="mt-[-1px] py-16 sm:py-20"
-        speed={0.22}
-        maxOffset={200}
-      >
-        <div className="mx-auto flex min-h-[60vh] max-w-6xl flex-col justify-center gap-8 px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-6 md:grid-cols-3">
-            {MATERIAL_CATEGORIES.map((category) => (
-              <ExpandableCategoryCard
-                key={category.title}
-                title={category.title}
-                description={category.description}
-              />
-            ))}
           </div>
         </div>
       </ParallaxSection>
