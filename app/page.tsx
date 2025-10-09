@@ -1,189 +1,168 @@
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
 
-const stats = [
-  { label: "Tons diverted", value: "2.8M" },
-  { label: "Active donors", value: "640" },
-  { label: "Avg. pickup", value: "3.5 days" },
-];
+import ListingCard, { type ListingCardData } from "@/component/ListingCard";
 
-const quickDestinations = [
+const QUICK_NAV = [
   {
-    title: "See live marketplace",
-    description: "Browse materials and map supply before creating an account.",
+    label: "Explore marketplace",
+    description: "Preview reuse-ready materials before you create an account.",
     href: "/search",
   },
   {
-    title: "List a donation",
-    description: "Share surplus with crews who can mobilise quickly.",
+    label: "Donate materials",
+    description: "List surplus and coordinate pickups in minutes.",
     href: "/donate",
   },
   {
-    title: "Read field notes",
-    description: "News, policy wins, and success stories from the network.",
+    label: "Read the briefing room",
+    description: "Policy wins, project spotlights, and platform data.",
     href: "/news",
   },
   {
-    title: "Get answers",
-    description: "Policies, logistics, and safety basics in one place.",
+    label: "Get support",
+    description: "FAQs, guidelines, and direct contact with our team.",
     href: "/faqs",
   },
 ];
 
-export default function Home() {
-  return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-16 px-4 py-10 text-slate-900 md:py-14">
-      <section className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-xl">
-        <Image
-          src="https://images.unsplash.com/photo-1503387762-592deb58ef4e"
-          alt="Stacks of reclaimed lumber ready for reuse"
-          fill
-          priority
-          className="absolute inset-0 object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-black/55 via-emerald-900/45 to-black/10" />
+const FEATURED_STATS = [
+  { label: "Materials diverted", value: "2.8M lbs" },
+  { label: "Active donors", value: "640" },
+  { label: "Avg. pickup time", value: "3.5 days" },
+];
 
-        <div className="relative grid gap-10 p-8 md:grid-cols-[minmax(0,1fr)_320px] md:p-14">
-          <div className="space-y-5 rounded-3xl bg-white/95 p-8 shadow-lg backdrop-blur">
-            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1497366754035-f200968a6e72";
+
+const PLACEHOLDER_CARDS: ListingCardData[] = [
+  {
+    id: "placeholder-a",
+    title: "Reclaimed lumber bundle",
+    image: FALLBACK_IMAGE,
+    tags: ["Wood"],
+    location: "Join to view",
+    availableLabel: "Availability shared after sign in",
+  },
+  {
+    id: "placeholder-b",
+    title: "Steel beams, assorted",
+    image: FALLBACK_IMAGE,
+    tags: ["Steel"],
+    location: "Join to view",
+    availableLabel: "Availability shared after sign in",
+  },
+  {
+    id: "placeholder-c",
+    title: "Fixtures & lighting lot",
+    image: FALLBACK_IMAGE,
+    tags: ["Fixtures"],
+    location: "Join to view",
+    availableLabel: "Availability shared after sign in",
+  },
+  {
+    id: "placeholder-d",
+    title: "Composite decking surplus",
+    image: FALLBACK_IMAGE,
+    tags: ["Decking"],
+    location: "Join to view",
+    availableLabel: "Availability shared after sign in",
+  },
+];
+
+export default async function Home() {
+  const cookieStore = cookies();
+  const supabase = createServerComponentClient({ cookies: () => cookieStore });
+
+  const { data: listings } = await supabase
+    .from("listings")
+    .select("id, title, type, shape, location_text, available_until, photos")
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(4);
+
+  const cards: ListingCardData[] = (listings ?? []).map((listing) => ({
+    id: listing.id,
+    title: listing.title,
+    image: listing.photos?.[0] ?? FALLBACK_IMAGE,
+    tags: [listing.type, listing.shape].filter(Boolean),
+    location: listing.location_text,
+    availableLabel: listing.available_until
+      ? `Available until ${listing.available_until}`
+      : undefined,
+  }));
+
+  const hasLiveListings = cards.length > 0;
+
+  return (
+    <main className="flex flex-col gap-16 bg-white pb-16">
+      <section className="relative isolate flex w-full overflow-hidden bg-slate-900 text-white">
+        <div className="absolute inset-0 -z-10">
+          <Image
+            src="https://images.unsplash.com/photo-1523419409543-0c1df022bdd1"
+            alt="Deconstruction site"
+            fill
+            priority
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-slate-900/65" />
+        </div>
+        <div className="mx-auto flex w-full max-w-6xl flex-col justify-center gap-12 px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+          <div className="max-w-3xl space-y-4">
+            <span className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-300">
               Circular materials marketplace
             </span>
-            <h1 className="text-3xl font-semibold leading-tight text-slate-900 md:text-4xl">
-              Give jobsite surplus a second life — empower the projects that
-              need it most.
+            <h1 className="text-[clamp(2.5rem,5vw,4.5rem)] font-extrabold leading-tight">
+              Route surplus away from landfill and into the projects that need
+              it most.
             </h1>
-            <p className="text-base leading-relaxed text-slate-600">
-              CircularBuild connects contractors, fabricators, and campus labs
-              with crews ready to reuse quality material. See supply in real
-              time, publish donations in minutes, and keep every transfer
-              transparent.
+            <p className="text-base leading-7 text-emerald-100">
+              CircularBuild connects contractors, fabricators, and community
+              builders with reuse-ready inventories. List donations in minutes,
+              preview nearby materials, and track diversion metrics right inside
+              the platform.
             </p>
-            <div className="flex flex-wrap gap-3 text-sm font-semibold">
+            <div className="flex flex-wrap gap-4 text-sm font-semibold">
               <Link
                 href="/search"
-                className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 text-white shadow transition hover:bg-emerald-700"
+                className="text-emerald-300 underline underline-offset-4 hover:text-emerald-200"
               >
-                Preview the marketplace
-                <span aria-hidden>→</span>
+                Preview available materials
               </Link>
               <Link
                 href="/donate"
-                className="inline-flex items-center gap-2 rounded-full border border-emerald-600 px-5 py-3 text-emerald-700 transition hover:bg-emerald-50"
+                className="text-emerald-300 underline underline-offset-4 hover:text-emerald-200"
               >
                 List a donation
               </Link>
               <Link
                 href="/who-we-are"
-                className="inline-flex items-center gap-2 rounded-full px-4 py-3 text-slate-600 transition hover:text-emerald-700"
+                className="text-emerald-300 underline underline-offset-4 hover:text-emerald-200"
               >
                 Meet the network
               </Link>
             </div>
           </div>
-
-          <div className="flex flex-col justify-between gap-4 rounded-3xl border border-white/30 bg-white/20 p-6 text-white shadow-lg backdrop-blur">
-            <p className="text-sm text-white/80">
-              “Within 48 hours of posting surplus flooring, a vocational
-              training centre scheduled pickup through CircularBuild. The
-              process kept everyone aligned.”
-            </p>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">
-              Anonymous donor · California
-            </p>
-            <div className="grid grid-cols-3 gap-3 rounded-2xl bg-black/25 p-4 text-center text-sm">
-              {stats.map((stat) => (
-                <div key={stat.label} className="space-y-1">
-                  <div className="text-lg font-semibold text-white">
-                    {stat.value}
-                  </div>
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-emerald-100">
-                    {stat.label}
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="flex flex-wrap gap-8 text-sm text-emerald-100">
+            {FEATURED_STATS.map((stat) => (
+              <div key={stat.label} className="flex flex-col gap-1 text-left">
+                <span className="text-3xl font-bold text-white">
+                  {stat.value}
+                </span>
+                <span className="text-[11px] uppercase tracking-[0.3em] text-emerald-200">
+                  {stat.label}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="grid gap-6 md:grid-cols-3">
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-emerald-700">
-            Wood & lumber
-          </h2>
-          <p className="mt-3 text-sm text-slate-600">
-            Dimensional lumber, sheathing, and trim make up 40% of residential
-            waste. Match offcuts with community crews instead of paying tipping
-            fees.
-          </p>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-emerald-700">Metals</h2>
-          <p className="mt-3 text-sm text-slate-600">
-            Steel and aluminum offcuts carry heavy embodied carbon. Reuse avoids
-            smelting emissions and keeps local fabrication on schedule.
-          </p>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-emerald-700">
-            Finishes & fixtures
-          </h2>
-          <p className="mt-3 text-sm text-slate-600">
-            Tile, windows, flooring, and cabinetry stretch nonprofit budgets and
-            reduce trips to salvage yards.
-          </p>
-        </div>
-      </section>
-
-      <section className="grid gap-6 md:grid-cols-2">
-        <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-2xl font-semibold text-slate-900">
-            Why circular sourcing matters
-          </h2>
-          <ul className="space-y-3 text-sm text-slate-600">
-            <li>
-              <strong className="text-emerald-700">Cut tipping fees:</strong>{" "}
-              Listing high-value materials is free and keeps resources in
-              circulation.
-            </li>
-            <li>
-              <strong className="text-emerald-700">Keep crews moving:</strong>{" "}
-              Builders can source nearby stock versus waiting on volatile supply
-              chains.
-            </li>
-            <li>
-              <strong className="text-emerald-700">
-                Empower community impact:
-              </strong>{" "}
-              Makerspaces, schools, and humanitarian teams gain transparent
-              inventory.
-            </li>
-          </ul>
-        </div>
-        <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 className="text-2xl font-semibold text-slate-900">
-            How CircularBuild works
-          </h3>
-          <ol className="space-y-3 text-sm text-slate-600">
-            <li>
-              <strong className="text-emerald-700">List surplus:</strong> Add
-              photos, availability, and pickup notes.
-            </li>
-            <li>
-              <strong className="text-emerald-700">Search smarter:</strong>{" "}
-              Filter specs or switch to map view to scout opportunities.
-            </li>
-            <li>
-              <strong className="text-emerald-700">Coordinate:</strong> Chat
-              in-app, confirm transfers, and track landfill diversion.
-            </li>
-          </ol>
-        </div>
-      </section>
-
-      <section className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div className="max-w-xl space-y-3">
+      <section className="w-full bg-white">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8">
+          <div className="space-y-3">
             <h2 className="text-2xl font-semibold text-slate-900">
               Where do you want to go next?
             </h2>
@@ -192,31 +171,142 @@ export default function Home() {
               a single account.
             </p>
           </div>
-          <Link
-            href="/auth"
-            className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow transition hover:bg-emerald-700"
-          >
-            Create a free account
-          </Link>
-        </div>
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {quickDestinations.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="group flex flex-col justify-between gap-3 rounded-2xl border border-gray-200 bg-white/90 p-5 transition hover:-translate-y-1 hover:border-emerald-500 hover:shadow-lg"
-            >
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold text-slate-900 group-hover:text-emerald-700">
-                  {item.title}
-                </h3>
-                <p className="text-sm text-slate-600">{item.description}</p>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {QUICK_NAV.map((item) => (
+              <div key={item.href} className="space-y-1">
+                <Link
+                  href={item.href}
+                  className="text-base font-semibold text-emerald-600 underline underline-offset-4 hover:text-emerald-700"
+                >
+                  {item.label}
+                </Link>
+                <p className="text-xs text-slate-600 leading-5">
+                  {item.description}
+                </p>
               </div>
-              <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600">
-                Explore <span aria-hidden>→</span>
-              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="w-full bg-slate-50">
+        <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-16 sm:px-6 lg:px-8">
+          <div className="space-y-3">
+            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-600">
+              Marketplace preview
+            </span>
+            <h2 className="text-[clamp(2rem,3.5vw,3rem)] font-bold text-slate-900">
+              Explore reuse-ready materials across the network.
+            </h2>
+            <p className="text-sm text-slate-600">
+              Preview a handful of active donations below. Sign in when
+              you&apos;re ready to save listings, chat with donors, or
+              coordinate pickups.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {hasLiveListings
+              ? cards.map((card) => (
+                  <ListingCard key={card.id} listing={card} />
+                ))
+              : PLACEHOLDER_CARDS.map((card) => (
+                  <ListingCard
+                    key={card.id}
+                    listing={{
+                      ...card,
+                      footer: (
+                        <Link
+                          href="/search"
+                          className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 underline"
+                        >
+                          Preview in marketplace
+                          <span aria-hidden>→</span>
+                        </Link>
+                      ),
+                    }}
+                  />
+                ))}
+          </div>
+          <div>
+            <Link
+              href="/search"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 underline decoration-emerald-400 underline-offset-4 hover:text-emerald-700"
+            >
+              See more available materials
+              <span aria-hidden>→</span>
             </Link>
-          ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="w-full bg-white">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8">
+          <div className="space-y-4">
+            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-600">
+              Stories from the field
+            </span>
+            <h2 className="text-[clamp(2rem,3.5vw,3rem)] font-bold text-slate-900">
+              Donors and builders proving circular works at scale.
+            </h2>
+            <p className="text-sm text-slate-600">
+              Coordinated pickups, transparent chat threads, and impact-ready
+              reporting keep reuse simple for both sides of the exchange.
+            </p>
+            <Link
+              href="/news"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 underline underline-offset-4 hover:text-emerald-700"
+            >
+              Read more stories
+              <span aria-hidden>→</span>
+            </Link>
+          </div>
+          <div className="grid gap-4">
+            <article className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-slate-900">
+                Training center matches 4,500 sq ft of flooring within 48 hours.
+              </h3>
+              <p className="mt-3 text-sm text-slate-600">
+                Verified pickup notes and auto-generated diversion metrics kept
+                40 students and nonprofit supervisors on schedule.
+              </p>
+            </article>
+            <article className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-slate-900">
+                Deconstruction partner diverts 22 tons of structural timber in
+                one weekend.
+              </h3>
+              <p className="mt-3 text-sm text-slate-600">
+                Logistics templates, QR code check-ins, and in-app messaging
+                streamlined the entire handoff.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section className="w-full bg-slate-900 text-white">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-16 sm:px-6 lg:px-8">
+          <h2 className="text-[clamp(2rem,3.2vw,3rem)] font-semibold leading-tight">
+            Ready to keep materials in circulation?
+          </h2>
+          <p className="text-sm text-emerald-100 max-w-3xl">
+            Create an account to publish donations, follow the marketplace, and
+            share diversion data with your stakeholders.
+          </p>
+          <div className="flex flex-wrap gap-4 text-sm font-semibold">
+            <Link
+              href="/auth"
+              className="text-emerald-200 underline underline-offset-4 hover:text-emerald-100"
+            >
+              Sign in or create an account
+            </Link>
+            <Link
+              href="/contact"
+              className="text-emerald-200 underline underline-offset-4 hover:text-emerald-100"
+            >
+              Talk with the CircularBuild team
+            </Link>
+          </div>
         </div>
       </section>
     </main>

@@ -160,6 +160,80 @@ export default function WhoWeArePage() {
         </div>
       </section>
 
+      <section className="grid gap-6 md:grid-cols-3">
+        <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-emerald-700">
+            Wood & lumber
+          </h2>
+          <p className="mt-3 text-sm text-gray-600">
+            Dimensional lumber, sheathing, and trim make up 40% of residential
+            waste. Match offcuts with community crews instead of paying tipping
+            fees.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-emerald-700">Metals</h2>
+          <p className="mt-3 text-sm text-gray-600">
+            Steel and aluminum offcuts carry heavy embodied carbon. Reuse avoids
+            smelting emissions and keeps local fabrication on schedule.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-emerald-700">
+            Finishes & fixtures
+          </h2>
+          <p className="mt-3 text-sm text-gray-600">
+            Tile, windows, flooring, and cabinetry stretch nonprofit budgets and
+            reduce trips to salvage yards.
+          </p>
+        </div>
+      </section>
+
+      <section className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-4 rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+          <h2 className="text-2xl font-semibold text-emerald-700">
+            Why circular sourcing matters
+          </h2>
+          <ul className="space-y-3 text-sm text-gray-600">
+            <li>
+              <strong className="text-emerald-700">Cut tipping fees:</strong>{" "}
+              Listing high-value materials is free and keeps resources in
+              circulation.
+            </li>
+            <li>
+              <strong className="text-emerald-700">Keep crews moving:</strong>{" "}
+              Builders can source nearby stock versus waiting on volatile supply
+              chains.
+            </li>
+            <li>
+              <strong className="text-emerald-700">
+                Empower community impact:
+              </strong>{" "}
+              Makerspaces, schools, and humanitarian teams gain transparent
+              inventory.
+            </li>
+          </ul>
+        </div>
+        <div className="space-y-4 rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+          <h3 className="text-2xl font-semibold text-emerald-700">
+            How CircularBuild works
+          </h3>
+          <ol className="space-y-3 text-sm text-gray-600">
+            <li>
+              <strong className="text-emerald-700">List surplus:</strong> Add
+              photos, availability, and pickup notes.
+            </li>
+            <li>
+              <strong className="text-emerald-700">Search smarter:</strong>{" "}
+              Filter specs or switch to map view to scout opportunities.
+            </li>
+            <li>
+              <strong className="text-emerald-700">Coordinate:</strong> Chat
+              in-app, confirm transfers, and track landfill diversion.
+            </li>
+          </ol>
+        </div>
+      </section>
       <section className="rounded-3xl border border-emerald-100 bg-white p-8 shadow-sm md:p-12">
         <h2 className="text-2xl font-semibold text-emerald-700">
           Ready to partner with us?
