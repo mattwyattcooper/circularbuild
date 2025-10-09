@@ -48,18 +48,73 @@ const GUIDING_VALUES = [
 const MATERIAL_CATEGORIES = [
   {
     title: "Wood & lumber",
-    description:
-      "Dimensional lumber, sheathing, and trim make up 40% of residential waste. Match offcuts with community crews instead of paying tipping fees.",
+    description: (
+      <p>
+        Dimensional lumber, sheathing, and trim make up 40% of residential
+        waste. Match offcuts with community crews instead of paying tipping
+        fees.
+      </p>
+    ),
   },
   {
     title: "Metals",
-    description:
-      "Steel and aluminum offcuts carry heavy embodied carbon. Reuse avoids smelting emissions and keeps local fabrication on schedule.",
+    description: (
+      <p>
+        Steel and aluminum offcuts carry heavy embodied carbon. Reuse avoids
+        smelting emissions and keeps local fabrication on schedule.
+      </p>
+    ),
   },
   {
     title: "Finishes & fixtures",
-    description:
-      "Tile, windows, flooring, and cabinetry stretch nonprofit budgets and reduce trips to salvage yards.",
+    description: (
+      <p>
+        Tile, windows, flooring, and cabinetry stretch nonprofit budgets and
+        reduce trips to salvage yards.
+      </p>
+    ),
+  },
+];
+
+const RESOURCE_TOPICS = [
+  {
+    title: "Why circular sourcing matters",
+    description: (
+      <ul className="space-y-3">
+        <li>
+          <strong className="text-white">Cut tipping fees:</strong> Listing
+          high-value materials is free and keeps resources in circulation.
+        </li>
+        <li>
+          <strong className="text-white">Keep crews moving:</strong> Builders
+          can source nearby stock versus waiting on volatile supply chains.
+        </li>
+        <li>
+          <strong className="text-white">Empower community impact:</strong>
+          Makerspaces, schools, and humanitarian teams gain transparent
+          inventory.
+        </li>
+      </ul>
+    ),
+  },
+  {
+    title: "How CircularBuild works",
+    description: (
+      <ol className="space-y-3 list-decimal pl-4">
+        <li>
+          <strong className="text-white">List surplus:</strong> Add photos,
+          availability, and pickup notes.
+        </li>
+        <li>
+          <strong className="text-white">Search smarter:</strong> Filter specs
+          or switch to map view to scout opportunities.
+        </li>
+        <li>
+          <strong className="text-white">Coordinate:</strong> Chat in-app,
+          confirm transfers, and track landfill diversion.
+        </li>
+      </ol>
+    ),
   },
 ];
 
@@ -86,8 +141,8 @@ export default function WhoWeArePage() {
         imageAlt="Volunteers sorting reclaimed construction materials"
         overlayClassName="bg-slate-950/70"
         className="pt-20 pb-16 sm:pt-24 sm:pb-20"
-        speed={0.18}
-        maxOffset={220}
+        speed={0.26}
+        maxOffset={260}
       >
         <div className="mx-auto flex min-h-[70vh] max-w-6xl flex-col gap-12 px-4 sm:px-6 lg:flex-row lg:items-center lg:px-8">
           <div className="flex-1 space-y-6">
@@ -118,11 +173,69 @@ export default function WhoWeArePage() {
                 never go to waste again.
               </p>
             </div>
+            <div className="flex flex-wrap gap-3 text-sm">
+              <Link
+                href="/donate"
+                className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2 text-white shadow-sm transition hover:bg-emerald-500"
+              >
+                Donate materials
+              </Link>
+              <Link
+                href="/contact"
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-400 px-5 py-2 text-white transition hover:border-white hover:bg-white/10"
+              >
+                Partner with the team
+              </Link>
+            </div>
           </div>
-          <div className="flex w-full max-w-sm flex-col gap-6">
-            <div className="rounded-3xl border border-white/30 bg-white/10 p-6 text-center text-lg font-semibold text-white shadow-lg backdrop-blur-lg">
+          <div className="flex w-full max-w-md flex-col gap-5">
+            <div className="rounded-3xl border border-white/30 bg-white/15 p-6 text-center text-lg font-semibold text-white shadow-lg backdrop-blur-xl">
               Reuse saves budget & carbon
             </div>
+            <div className="rounded-3xl border border-white/25 bg-white/15 p-6 text-left shadow-lg backdrop-blur-xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">
+                Most common materials wasted
+              </p>
+              <ul className="mt-4 space-y-2 text-sm text-emerald-100/90 sm:text-base">
+                <li>• Dimensional lumber and engineered wood</li>
+                <li>• Structural steel and aluminum stock</li>
+                <li>• Finish fixtures: tile, flooring, cabinetry</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </ParallaxSection>
+
+      <ParallaxSection
+        imageSrc="https://images.unsplash.com/photo-1531835551805-16d864c8dffe?auto=format&fit=crop&w=2400&q=80"
+        imageAlt="Stacked reclaimed timber ready for reuse"
+        overlayClassName="bg-emerald-950/75"
+        className="mt-[-1px] py-14 sm:py-18"
+        speed={0.24}
+        maxOffset={220}
+      >
+        <div className="mx-auto flex min-h-[60vh] max-w-6xl flex-col justify-center gap-8 px-4 sm:px-6 lg:px-8">
+          <div className="space-y-4">
+            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
+              Materials we keep in circulation
+            </span>
+            <h2 className="text-[clamp(2rem,3.5vw,3.2rem)] font-bold leading-tight text-white">
+              Explore the categories donors move most through CircularBuild.
+            </h2>
+            <p className="max-w-3xl text-sm text-emerald-100/90 sm:text-base">
+              Tap a category to reveal how we redirect surplus into the hands of
+              nonprofits, students, and homeowners tackling mission-critical
+              builds.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {MATERIAL_CATEGORIES.map((category) => (
+              <ExpandableCategoryCard
+                key={category.title}
+                title={category.title}
+                description={category.description}
+              />
+            ))}
           </div>
         </div>
       </ParallaxSection>
@@ -132,8 +245,8 @@ export default function WhoWeArePage() {
         imageAlt="Stacks of reclaimed beams inside a warehouse"
         overlayClassName="bg-emerald-950/75"
         className="mt-[-1px] py-16 sm:py-20"
-        speed={0.2}
-        maxOffset={200}
+        speed={0.26}
+        maxOffset={220}
       >
         <div className="mx-auto flex min-h-[60vh] max-w-6xl flex-col justify-center gap-10 px-4 sm:px-6 lg:px-8">
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -159,47 +272,63 @@ export default function WhoWeArePage() {
         imageSrc="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Team collaborating on reused construction materials"
         overlayClassName="bg-slate-950/75"
-        className="mt-[-1px] py-16 sm:py-24"
-        speed={0.18}
-        maxOffset={220}
+        className="mt-[-1px] py-18 sm:py-24"
+        speed={0.25}
+        maxOffset={240}
       >
-        <div className="mx-auto grid min-h-[70vh] max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[2fr_1fr] lg:items-stretch lg:px-8">
-          <div className="space-y-6">
+        <div className="mx-auto flex min-h-[70vh] max-w-6xl flex-col justify-center gap-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl space-y-12">
             {STORY_POINTS.map((point) => (
-              <article
-                key={point.heading}
-                className="rounded-3xl border border-white/25 bg-white/10 p-8 shadow-lg backdrop-blur-lg"
-              >
-                <h2 className="text-2xl font-semibold text-white sm:text-3xl">
+              <div key={point.heading} className="space-y-4">
+                <h2 className="text-[clamp(2.1rem,3.6vw,3rem)] font-semibold text-white">
                   {point.heading}
                 </h2>
-                <p className="mt-4 text-sm text-emerald-100 sm:text-base">
+                <p className="text-base leading-7 text-emerald-100/90 sm:text-lg">
                   {point.copy}
                 </p>
-              </article>
+              </div>
             ))}
           </div>
-          <div className="flex flex-col justify-between gap-6 rounded-3xl border border-white/30 bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-800 p-8 shadow-xl">
-            <div>
-              <h2 className="text-2xl font-semibold">Our north star</h2>
-              <p className="mt-3 text-sm text-emerald-100">
+        </div>
+      </ParallaxSection>
+
+      <ParallaxSection
+        imageSrc="https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=2400&q=80"
+        imageAlt="Sunlight over reclaimed building materials"
+        overlayClassName="bg-emerald-950/80"
+        className="mt-[-1px] py-16 sm:py-20"
+        speed={0.24}
+        maxOffset={220}
+      >
+        <div className="mx-auto flex min-h-[60vh] max-w-6xl flex-col justify-center gap-10 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-5xl space-y-8">
+            <div className="space-y-4">
+              <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
+                Our north star
+              </span>
+              <p className="text-base leading-7 text-emerald-100/90 sm:text-lg">
                 Every donation keeps materials in circulation, reduces embodied
                 carbon, and empowers innovators who are building better places
                 to live. CircularBuild is the bridge that makes both giving and
                 receiving effortless.
               </p>
             </div>
-            <ul className="space-y-4 text-sm">
+            <div className="space-y-6">
               {GUIDING_VALUES.map((value) => (
-                <li key={value.title} className="rounded-2xl bg-white/10 p-4">
-                  <h3 className="text-lg font-medium text-white">
+                <div
+                  key={value.title}
+                  className="space-y-2 border-l-4 border-emerald-400/70 pl-6"
+                >
+                  <h3 className="text-lg font-semibold text-white sm:text-xl">
                     {value.title}
                   </h3>
-                  <p className="mt-2 text-emerald-100">{value.description}</p>
-                </li>
+                  <p className="text-sm leading-7 text-emerald-100/85 sm:text-base">
+                    {value.description}
+                  </p>
+                </div>
               ))}
-            </ul>
-            <p className="text-xs text-emerald-200">
+            </div>
+            <p className="text-xs text-emerald-200/90">
               CircularBuild operates as a mission-driven nonprofit. We measure
               success by the tonnage redirected from landfills and the projects
               made possible in classrooms, workshops, and communities worldwide.
@@ -234,53 +363,27 @@ export default function WhoWeArePage() {
         imageAlt="Architects reviewing plans on a job site"
         overlayClassName="bg-slate-950/80"
         className="mt-[-1px] py-16 sm:py-20"
-        speed={0.2}
-        maxOffset={200}
+        speed={0.24}
+        maxOffset={220}
       >
-        <div className="mx-auto grid min-h-[60vh] max-w-6xl gap-8 px-4 sm:px-6 md:grid-cols-2 lg:px-8">
-          <article className="rounded-3xl border border-white/25 bg-white/10 p-8 text-left shadow-lg backdrop-blur-lg">
-            <h2 className="text-2xl font-semibold text-white">
-              Why circular sourcing matters
+        <div className="mx-auto flex min-h-[60vh] max-w-6xl flex-col justify-center gap-8 px-4 sm:px-6 lg:px-8">
+          <div className="space-y-4">
+            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
+              How reuse delivers value
+            </span>
+            <h2 className="text-[clamp(2rem,3.5vw,3.2rem)] font-bold text-white">
+              Tap to see why donors and builders rely on CircularBuild.
             </h2>
-            <ul className="mt-6 space-y-4 text-sm text-emerald-100 sm:text-base">
-              <li>
-                <strong className="text-white">Cut tipping fees:</strong>{" "}
-                Listing high-value materials is free and keeps resources in
-                circulation.
-              </li>
-              <li>
-                <strong className="text-white">Keep crews moving:</strong>{" "}
-                Builders can source nearby stock versus waiting on volatile
-                supply chains.
-              </li>
-              <li>
-                <strong className="text-white">
-                  Empower community impact:
-                </strong>
-                Makerspaces, schools, and humanitarian teams gain transparent
-                inventory.
-              </li>
-            </ul>
-          </article>
-          <article className="rounded-3xl border border-white/25 bg-white/10 p-8 text-left shadow-lg backdrop-blur-lg">
-            <h3 className="text-2xl font-semibold text-white">
-              How CircularBuild works
-            </h3>
-            <ol className="mt-6 space-y-4 text-sm text-emerald-100 sm:text-base">
-              <li>
-                <strong className="text-white">List surplus:</strong> Add
-                photos, availability, and pickup notes.
-              </li>
-              <li>
-                <strong className="text-white">Search smarter:</strong> Filter
-                specs or switch to map view to scout opportunities.
-              </li>
-              <li>
-                <strong className="text-white">Coordinate:</strong> Chat in-app,
-                confirm transfers, and track landfill diversion.
-              </li>
-            </ol>
-          </article>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {RESOURCE_TOPICS.map((topic) => (
+              <ExpandableCategoryCard
+                key={topic.title}
+                title={topic.title}
+                description={topic.description}
+              />
+            ))}
+          </div>
         </div>
       </ParallaxSection>
 

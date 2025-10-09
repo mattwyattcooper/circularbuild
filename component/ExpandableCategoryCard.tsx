@@ -1,10 +1,11 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 
 type Props = {
   title: string;
-  description: string;
+  description: ReactNode;
 };
 
 export default function ExpandableCategoryCard({ title, description }: Props) {
@@ -32,7 +33,7 @@ export default function ExpandableCategoryCard({ title, description }: Props) {
         }`}
       >
         <div className="overflow-hidden px-6 pb-6 text-sm text-emerald-100 sm:text-base">
-          <p>{description}</p>
+          {description}
         </div>
       </div>
     </article>
