@@ -101,7 +101,7 @@ export default async function Home() {
       <section className="relative isolate flex w-full overflow-hidden bg-slate-900 text-white">
         <div className="absolute inset-0 -z-10">
           <Image
-            src="https://images.unsplash.com/photo-1523419409543-0c1df022bdd1"
+            src="https://images.unsplash.com/photo-1523419409543-0c1df022bdd1?auto=format&fit=crop&w=2000&q=80"
             alt="Deconstruction site"
             fill
             priority
@@ -109,8 +109,8 @@ export default async function Home() {
           />
           <div className="absolute inset-0 bg-slate-900/65" />
         </div>
-        <div className="mx-auto flex w-full max-w-6xl flex-col justify-center gap-12 px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
-          <div className="max-w-3xl space-y-4">
+        <div className="mx-auto flex w-full flex-col justify-center gap-14 px-6 py-20 sm:px-10 lg:px-20 lg:py-28">
+          <div className="max-w-3xl space-y-6">
             <span className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-300">
               Circular materials marketplace
             </span>
@@ -118,13 +118,13 @@ export default async function Home() {
               Route surplus away from landfill and into the projects that need
               it most.
             </h1>
-            <p className="text-base leading-7 text-emerald-100">
+            <p className="max-w-2xl text-base leading-7 text-emerald-100">
               CircularBuild connects contractors, fabricators, and community
               builders with reuse-ready inventories. List donations in minutes,
               preview nearby materials, and track diversion metrics right inside
               the platform.
             </p>
-            <div className="flex flex-wrap gap-4 text-sm font-semibold">
+            <div className="flex flex-wrap gap-5 text-sm font-semibold">
               <Link
                 href="/search"
                 className="text-emerald-300 underline underline-offset-4 hover:text-emerald-200"
@@ -145,7 +145,7 @@ export default async function Home() {
               </Link>
             </div>
           </div>
-          <div className="flex flex-wrap gap-8 text-sm text-emerald-100">
+          <div className="flex flex-wrap gap-12 text-sm text-emerald-100">
             {FEATURED_STATS.map((stat) => (
               <div key={stat.label} className="flex flex-col gap-1 text-left">
                 <span className="text-3xl font-bold text-white">
@@ -293,7 +293,7 @@ export default async function Home() {
             Create an account to publish donations, follow the marketplace, and
             share diversion data with your stakeholders.
           </p>
-          <div className="flex flex-wrap gap-4 text-sm font-semibold">
+          <div className="flex flex-wrap gap-5 text-sm font-semibold">
             <Link
               href="/auth"
               className="text-emerald-200 underline underline-offset-4 hover:text-emerald-100"
