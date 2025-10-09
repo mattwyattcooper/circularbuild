@@ -21,7 +21,7 @@ const HERO_LINKS = [
 ];
 
 export default function HeroSection({ stats }: Props) {
-  const backgroundRef = useParallax({ speed: 0.18, maxOffset: 160 });
+  const backgroundRef = useParallax({ speed: 0.26, maxOffset: 220 });
 
   return (
     <section className="relative isolate flex w-full overflow-hidden bg-slate-900 text-white">

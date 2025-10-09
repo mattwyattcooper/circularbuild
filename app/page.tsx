@@ -98,33 +98,48 @@ export default async function Home() {
   const hasLiveListings = cards.length > 0;
 
   return (
-    <main className="flex flex-col gap-16 bg-white pb-16">
+    <main className="flex flex-col gap-8 bg-white pb-14">
       <HeroSection stats={FEATURED_STATS} />
 
-      <section className="w-full bg-white">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8">
-          <div className="space-y-3">
-            <h2 className="text-2xl font-semibold text-slate-900">
+      <section className="relative isolate w-full overflow-hidden bg-gradient-to-tr from-emerald-900 via-emerald-800 to-slate-900 py-12 text-white sm:py-14 lg:py-16">
+        <div className="absolute inset-0">
+          <div className="absolute -left-20 top-10 h-56 w-56 rounded-full bg-emerald-500/25 blur-3xl" />
+          <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-teal-400/20 blur-3xl" />
+        </div>
+        <div className="relative mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:px-8">
+          <div className="space-y-5">
+            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
+              Navigate the platform
+            </span>
+            <h2 className="text-[clamp(2.25rem,3vw,3.5rem)] font-bold leading-tight">
               Where do you want to go next?
             </h2>
-            <p className="text-sm text-slate-600">
-              Move between marketplace, donor tools, and learning resources with
-              a single account.
+            <p className="max-w-xl text-base text-emerald-100 sm:text-lg">
+              Move seamlessly between marketplace browsing, donor tools, and
+              learning resources with a single account.
             </p>
           </div>
-          <div className="grid gap-6 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             {QUICK_NAV.map((item) => (
-              <div key={item.href} className="space-y-1">
-                <Link
-                  href={item.href}
-                  className="text-base font-semibold text-emerald-600 underline underline-offset-4 hover:text-emerald-700"
-                >
-                  {item.label}
-                </Link>
-                <p className="text-xs text-slate-600 leading-5">
-                  {item.description}
-                </p>
-              </div>
+              <Link
+                key={item.href}
+                href={item.href}
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/10 p-5 transition duration-200 hover:border-white/25 hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-200"
+              >
+                <div className="flex h-full flex-col gap-3">
+                  <span className="text-base font-semibold text-white sm:text-lg">
+                    {item.label}
+                  </span>
+                  <p className="text-sm text-emerald-100 leading-6">
+                    {item.description}
+                  </p>
+                  <span className="mt-auto inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-200 transition group-hover:translate-x-1">
+                    Explore
+                    <span aria-hidden>→</span>
+                  </span>
+                </div>
+                <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-tr from-white/10 via-transparent to-white/5 opacity-0 transition group-hover:opacity-100" />
+              </Link>
             ))}
           </div>
         </div>
@@ -134,9 +149,9 @@ export default async function Home() {
         imageSrc="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Stacks of reclaimed timber organized inside a warehouse"
         overlayClassName="bg-slate-950/70"
-        className="py-16"
-        speed={0.12}
-        maxOffset={140}
+        className="py-12 md:py-16"
+        speed={0.2}
+        maxOffset={180}
       >
         <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 sm:px-6 lg:px-8">
           <div className="space-y-3 text-white">
@@ -191,9 +206,9 @@ export default async function Home() {
         imageSrc="https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Crew lifting reclaimed steel beams on a job site"
         overlayClassName="bg-emerald-950/70"
-        className="py-20"
-        speed={0.18}
-        maxOffset={180}
+        className="py-14 md:py-20"
+        speed={0.24}
+        maxOffset={220}
       >
         <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8">
           <div className="space-y-4 text-white">
@@ -243,9 +258,9 @@ export default async function Home() {
         imageSrc="https://images.unsplash.com/photo-1451976426598-a7593bd6d0b2?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Community volunteers unloading reclaimed construction materials"
         overlayClassName="bg-slate-950/75"
-        className="py-16"
-        speed={0.14}
-        maxOffset={160}
+        className="py-12 md:py-16"
+        speed={0.22}
+        maxOffset={200}
       >
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 sm:px-6 lg:px-8 text-white">
           <h2 className="text-[clamp(2rem,3.2vw,3.4rem)] font-semibold leading-tight">
