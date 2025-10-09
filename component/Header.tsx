@@ -92,7 +92,7 @@ export default function Header() {
                 key={item.href}
                 type="button"
                 onClick={() => handleNavClick(item)}
-                className={`rounded-pill px-3 py-2 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-brand-emerald focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                className={`rounded-pill px-3 py-2 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-emerald ${
                   isActive
                     ? "bg-brand-emerald text-white shadow-brand"
                     : "text-brand-slate hover:bg-brand-emerald/10 hover:text-brand-emerald"
