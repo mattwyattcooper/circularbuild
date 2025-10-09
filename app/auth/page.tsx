@@ -2,10 +2,11 @@
 
 import type { Session } from "@supabase/supabase-js";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+
 import { supabase } from "../../lib/supabaseClient";
 
-export default function AuthPage() {
+function AuthPageInner() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -84,9 +85,9 @@ export default function AuthPage() {
   }, []);
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="p-6 rounded-2xl bg-white shadow w-full max-w-sm">
-        <h1 className="text-xl font-bold mb-4">Account</h1>
+    <main className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow">
+        <h1 className="mb-4 text-xl font-bold">Account</h1>
 
         {session ? (
           <div className="space-y-3">
@@ -95,7 +96,7 @@ export default function AuthPage() {
             </div>
             <button
               type="button"
-              className="w-full px-4 py-2 rounded-lg bg-gray-900 text-white"
+              className="w-full rounded-lg bg-gray-900 px-4 py-2 text-white"
               onClick={signOut}
             >
               Sign out
@@ -105,20 +106,20 @@ export default function AuthPage() {
           <div className="space-y-3">
             {mode === "signup" && (
               <input
-                className="w-full px-3 py-2 rounded-lg border"
+                className="w-full rounded-lg border px-3 py-2"
                 placeholder="Full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             )}
             <input
-              className="w-full px-3 py-2 rounded-lg border"
+              className="w-full rounded-lg border px-3 py-2"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
             <input
-              className="w-full px-3 py-2 rounded-lg border"
+              className="w-full rounded-lg border px-3 py-2"
               type="password"
               placeholder="Password"
               value={password}
@@ -126,14 +127,14 @@ export default function AuthPage() {
             />
             <button
               type="button"
-              className="w-full px-4 py-2 rounded-lg bg-emerald-600 text-white"
+              className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-white"
               onClick={handleSubmit}
             >
               {mode === "signup" ? "Create account" : "Sign in"}
             </button>
             <button
               type="button"
-              className="w-full px-4 py-2 rounded-lg border"
+              className="w-full rounded-lg border px-4 py-2"
               onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
             >
               {mode === "signup"
@@ -143,8 +144,22 @@ export default function AuthPage() {
           </div>
         )}
 
-        {msg && <div className="text-sm text-gray-700 mt-3">{msg}</div>}
+        {msg && <div className="mt-3 text-sm text-gray-700">{msg}</div>}
       </div>
     </main>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-gray-50 text-slate-600">
+          Loading account tools…
+        </main>
+      }
+    >
+      <AuthPageInner />
+    </Suspense>
   );
 }
