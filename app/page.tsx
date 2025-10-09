@@ -105,6 +105,7 @@ export default async function Home() {
             alt="Deconstruction site"
             fill
             priority
+            sizes="100vw"
             className="object-cover"
           />
           <div className="absolute inset-0 bg-slate-900/65" />
