@@ -55,6 +55,11 @@ export default function SearchPage() {
   const [locStatus, setLocStatus] = useState<string>("");
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
   const [wishlistMsg, setWishlistMsg] = useState<string>("");
+  const [authPrompt, setAuthPrompt] = useState<{
+    title?: string;
+    message: string;
+    nextPath: string;
+  } | null>(null);
 
   const radiusMiles = useMemo(() => Number(radius) || 25, [radius]);
 
@@ -166,10 +171,20 @@ export default function SearchPage() {
 
   const toggleWishlist = async (listingId: string) => {
     setWishlistMsg("");
+    if (!isAuthenticated) {
+      setAuthPrompt({
+        message: "Sign in to save materials to your wishlist.",
+        nextPath: "/search",
+      });
+      return;
+    }
     const { data: sess } = await supabase.auth.getSession();
     const uid = sess.session?.user.id;
     if (!uid) {
-      router.push(`/auth?next=${encodeURIComponent("/search")}`);
+      setAuthPrompt({
+        message: "Sign in to save materials to your wishlist.",
+        nextPath: "/search",
+      });
       return;
     }
     const isSaved = wishlistIds.has(listingId);
@@ -203,7 +218,10 @@ export default function SearchPage() {
 
   const handleViewListing = (listingId: string) => {
     if (!isAuthenticated) {
-      router.push(`/auth?next=${encodeURIComponent(`/listing/${listingId}`)}`);
+      setAuthPrompt({
+        message: "Sign in to view listing details and coordinate pickups.",
+        nextPath: `/listing/${listingId}`,
+      });
       return;
     }
     router.push(`/listing/${listingId}`);
@@ -217,186 +235,209 @@ export default function SearchPage() {
     );
   }
 
+  const dismissAuthPrompt = () => setAuthPrompt(null);
+
   return (
-    <main className="max-w-6xl mx-auto p-6 text-gray-900">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-emerald-700">
-            Search for donations
-          </h1>
-          <p className="text-sm text-gray-600">
-            Explore surplus materials shared by vetted contractors and
-            homeowners. Filter by the specifications you need or switch to the
-            map view to scan nearby opportunities.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 self-start rounded-full border border-gray-200 bg-white p-1">
-          <button
-            type="button"
-            className={`rounded-full px-4 py-1 text-sm ${
-              viewMode === "list"
-                ? "bg-emerald-600 text-white"
-                : "text-slate-600 hover:text-emerald-600"
-            }`}
-            onClick={() => setViewMode("list")}
-          >
-            List view
-          </button>
-          <button
-            type="button"
-            className={`rounded-full px-4 py-1 text-sm ${
-              viewMode === "map"
-                ? "bg-emerald-600 text-white"
-                : "text-slate-600 hover:text-emerald-600"
-            }`}
-            onClick={() => setViewMode("map")}
-          >
-            Map view
-          </button>
-        </div>
-      </div>
-
-      {!isAuthenticated && (
-        <div className="rounded-lg border border-gray-200 bg-emerald-50 px-4 py-3 text-sm text-slate-700">
-          Preview materials before you join. Create an account to save listings,
-          chat with donors, and arrange pickups.
+    <>
+      {authPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md">
+            <AuthWall
+              title={authPrompt.title}
+              message={authPrompt.message}
+              nextPath={authPrompt.nextPath}
+              secondaryHref="/search"
+            />
+            <button
+              type="button"
+              className="mt-4 w-full rounded-lg border border-emerald-600 bg-white px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50"
+              onClick={dismissAuthPrompt}
+            >
+              Continue browsing
+            </button>
+          </div>
         </div>
       )}
-
-      <div className="mt-6 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-5">
-        <label className="flex flex-col gap-1 md:col-span-2">
-          <span className="text-sm font-medium">Keywords</span>
-          <input
-            className="rounded-lg border px-3 py-2"
-            placeholder="Search by title, shape, description"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Material</span>
-          <select
-            className="rounded-lg border px-3 py-2"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-          >
-            {MATERIALS.map((m) => (
-              <option key={m} value={m}>
-                {m === "" ? "All materials" : m}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Address or ZIP</span>
-          <input
-            className="rounded-lg border px-3 py-2"
-            placeholder="Type an address to focus results"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Radius (miles)</span>
-          <input
-            type="number"
-            min={1}
-            placeholder="25"
-            className="rounded-lg border px-3 py-2"
-            value={radius}
-            onChange={(e) => setRadius(e.target.value)}
-          />
-        </label>
-
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            className="rounded-lg border px-3 py-2 text-sm"
-            onClick={handleUseCurrentLocation}
-          >
-            Use my location
-          </button>
-          <button
-            type="button"
-            className="rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white transition hover:bg-emerald-700 disabled:opacity-60"
-            onClick={() => fetchListings()}
-            disabled={loading}
-          >
-            {loading ? "Searching…" : "Apply filters"}
-          </button>
+      <main className="mx-auto max-w-6xl p-6 text-slate-900">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold text-emerald-700">
+              Search for donations
+            </h1>
+            <p className="text-sm text-gray-600">
+              Explore surplus materials shared by vetted contractors and
+              homeowners. Filter by the specifications you need or switch to the
+              map view to scan nearby opportunities.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 self-start rounded-full border border-gray-200 bg-white p-1">
+            <button
+              type="button"
+              className={`rounded-full px-4 py-1 text-sm ${
+                viewMode === "list"
+                  ? "bg-emerald-600 text-white"
+                  : "text-slate-600 hover:text-emerald-600"
+              }`}
+              onClick={() => setViewMode("list")}
+            >
+              List view
+            </button>
+            <button
+              type="button"
+              className={`rounded-full px-4 py-1 text-sm ${
+                viewMode === "map"
+                  ? "bg-emerald-600 text-white"
+                  : "text-slate-600 hover:text-emerald-600"
+              }`}
+              onClick={() => setViewMode("map")}
+            >
+              Map view
+            </button>
+          </div>
         </div>
-      </div>
 
-      {locStatus && (
-        <div className="mt-2 text-xs text-gray-600">{locStatus}</div>
-      )}
-      {msg && <div className="mt-4 text-sm">{msg}</div>}
-      {wishlistMsg && (
-        <div className="mt-2 text-xs text-red-600">{wishlistMsg}</div>
-      )}
+        {!isAuthenticated && (
+          <div className="rounded-lg border border-gray-200 bg-emerald-50 px-4 py-3 text-sm text-slate-700">
+            Preview materials before you join. Create an account to save
+            listings, chat with donors, and arrange pickups.
+          </div>
+        )}
 
-      {viewMode === "map" ? (
-        <div className="mt-6 h-[480px] overflow-hidden rounded-2xl border border-gray-200">
-          <ListingMap listings={items} radius={radiusMiles} origin={origin} />
+        <div className="mt-6 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-5">
+          <label className="flex flex-col gap-1 md:col-span-2">
+            <span className="text-sm font-medium">Keywords</span>
+            <input
+              className="rounded-lg border px-3 py-2"
+              placeholder="Search by title, shape, description"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Material</span>
+            <select
+              className="rounded-lg border px-3 py-2"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+            >
+              {MATERIALS.map((m) => (
+                <option key={m} value={m}>
+                  {m === "" ? "All materials" : m}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Address or ZIP</span>
+            <input
+              className="rounded-lg border px-3 py-2"
+              placeholder="Type an address to focus results"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Radius (miles)</span>
+            <input
+              type="number"
+              min={1}
+              placeholder="25"
+              className="rounded-lg border px-3 py-2"
+              value={radius}
+              onChange={(e) => setRadius(e.target.value)}
+            />
+          </label>
+
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              className="rounded-lg border px-3 py-2 text-sm"
+              onClick={handleUseCurrentLocation}
+            >
+              Use my location
+            </button>
+            <button
+              type="button"
+              className="rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white transition hover:bg-emerald-700 disabled:opacity-60"
+              onClick={() => fetchListings()}
+              disabled={loading}
+            >
+              {loading ? "Searching…" : "Apply filters"}
+            </button>
+          </div>
         </div>
-      ) : (
-        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {items.map((l) => {
-            const saved = wishlistIds.has(l.id);
-            return (
-              <div
-                key={l.id}
-                className="rounded-xl border border-gray-200 bg-white p-4"
-              >
-                {Array.isArray(l.photos) && l.photos[0] ? (
-                  <Image
-                    src={l.photos[0]}
-                    alt={l.title}
-                    width={400}
-                    height={320}
-                    sizes="(max-width: 768px) 100vw, 400px"
-                    className="mb-3 h-40 w-full rounded-lg object-cover"
-                  />
-                ) : (
-                  <div className="mb-3 grid h-40 w-full place-items-center rounded-lg bg-gray-100 text-sm text-gray-500">
-                    No photo
+
+        {locStatus && (
+          <div className="mt-2 text-xs text-gray-600">{locStatus}</div>
+        )}
+        {msg && <div className="mt-4 text-sm">{msg}</div>}
+        {wishlistMsg && (
+          <div className="mt-2 text-xs text-red-600">{wishlistMsg}</div>
+        )}
+
+        {viewMode === "map" ? (
+          <div className="mt-6 h-[480px] overflow-hidden rounded-2xl border border-gray-200">
+            <ListingMap listings={items} radius={radiusMiles} origin={origin} />
+          </div>
+        ) : (
+          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {items.map((l) => {
+              const saved = wishlistIds.has(l.id);
+              return (
+                <div
+                  key={l.id}
+                  className="rounded-xl border border-gray-200 bg-white p-4"
+                >
+                  {Array.isArray(l.photos) && l.photos[0] ? (
+                    <Image
+                      src={l.photos[0]}
+                      alt={l.title}
+                      width={400}
+                      height={320}
+                      sizes="(max-width: 768px) 100vw, 400px"
+                      className="mb-3 h-40 w-full rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="mb-3 grid h-40 w-full place-items-center rounded-lg bg-gray-100 text-sm text-gray-500">
+                      No photo
+                    </div>
+                  )}
+                  <div className="font-semibold">{l.title}</div>
+                  <div className="text-sm text-gray-600">
+                    {l.type} • {l.shape} • {l.count} pcs
                   </div>
-                )}
-                <div className="font-semibold">{l.title}</div>
-                <div className="text-sm text-gray-600">
-                  {l.type} • {l.shape} • {l.count} pcs
+                  <div className="text-xs text-gray-500">
+                    Avail. until {l.available_until} • {l.location_text}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="rounded-lg bg-gray-900 px-3 py-2 text-white transition hover:bg-gray-800"
+                      onClick={() => handleViewListing(l.id)}
+                    >
+                      View listing
+                    </button>
+                    <button
+                      type="button"
+                      className={`rounded-lg px-3 py-2 text-sm ${
+                        saved
+                          ? "border border-emerald-500 text-emerald-600"
+                          : "border border-gray-200 text-gray-600"
+                      }`}
+                      onClick={() => toggleWishlist(l.id)}
+                    >
+                      {saved ? "Saved" : "Save"}
+                    </button>
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500">
-                  Avail. until {l.available_until} • {l.location_text}
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="rounded-lg bg-gray-900 px-3 py-2 text-white transition hover:bg-gray-800"
-                    onClick={() => handleViewListing(l.id)}
-                  >
-                    View listing
-                  </button>
-                  <button
-                    type="button"
-                    className={`rounded-lg px-3 py-2 text-sm ${
-                      saved
-                        ? "border border-emerald-500 text-emerald-600"
-                        : "border border-gray-200 text-gray-600"
-                    }`}
-                    onClick={() => toggleWishlist(l.id)}
-                  >
-                    {saved ? "Saved" : "Save"}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </main>
+              );
+            })}
+          </div>
+        )}
+      </main>
+    </>
   );
 }

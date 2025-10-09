@@ -1,7 +1,6 @@
 // app/news/page.tsx
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
-import Link from "next/link";
 
 import NewsNotificationPrompt from "./notification-prompt";
 import PostCard from "./post-card";
@@ -34,36 +33,7 @@ export default async function NewsPage() {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session) {
-    return (
-      <div className="mx-auto max-w-xl px-6 py-16 text-center">
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-10 text-amber-900">
-          <h2 className="text-xl font-semibold text-emerald-700">
-            Sign in to follow industry updates
-          </h2>
-          <p className="mt-3 text-sm">
-            CircularBuild news covers waste diversion breakthroughs, policy
-            moves, and project stories curated for our community. Log in to keep
-            reading and opt into alerts.
-          </p>
-          <div className="mt-6 flex justify-center gap-3">
-            <Link
-              href="/auth"
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-white"
-            >
-              Go to sign in
-            </Link>
-            <Link
-              href="/"
-              className="rounded-lg border border-emerald-600 px-4 py-2 text-emerald-700"
-            >
-              Return home
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const isAuthenticated = Boolean(session);
 
   const { data: posts, error: postsErr } = await supabase
     .from("news_posts")
@@ -151,6 +121,7 @@ export default async function NewsPage() {
               readMinutes={readMinutes}
               excerpt={excerpt}
               canEdit={canEdit}
+              isAuthenticated={isAuthenticated}
             />
           );
         })}

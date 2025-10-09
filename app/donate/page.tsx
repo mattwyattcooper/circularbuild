@@ -150,7 +150,11 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
     <main className="max-w-3xl mx-auto p-6 text-gray-900">
       {authStatus === "checking" && <div>Checking authentication…</div>}
       {authStatus === "unauthenticated" && (
-        <AuthWall message="Please sign in to donate materials." />
+        <AuthWall
+          title="Sign in required"
+          message="Sign in to donate materials through CircularBuild."
+          nextPath="/donate"
+        />
       )}
       {authStatus === "authenticated" && (
         <>
