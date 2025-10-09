@@ -71,7 +71,7 @@ export default function Header() {
         <button
           type="button"
           onClick={() => router.push("/search")}
-          className="hidden w-full max-w-md items-center gap-3 rounded-full border border-slate-200 bg-white px-5 py-2 text-left text-sm text-slate-500 shadow-sm transition hover:border-emerald-500 hover:text-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-500 md:flex"
+          className="hidden w-full max-w-md items-center gap-3 rounded-full border border-slate-200 bg-white px-5 py-2 text-left text-sm text-slate-500 shadow-sm transition hover:border-emerald-500 hover:text-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white md:flex"
           aria-label="Open marketplace search"
         >
           <span className="flex-1">Search materials, locations, partners…</span>
