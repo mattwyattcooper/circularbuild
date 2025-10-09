@@ -1,46 +1,50 @@
 @import "tailwindcss";
 
-/* Define design tokens you want used in Tailwind utility classes */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f5f7fa;
+  --foreground: #0f172a;
+  --font-inter:
+    "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #020617;
+    --foreground: #f8fafc;
   }
 }
 
 body {
-  /* Fallbacks if utilities not used everywhere */
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter);
 }
 
 @layer base {
   html,
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-brand-ivory text-brand-ink antialiased;
   }
 
   input,
   select,
   textarea,
   button {
-    @apply text-gray-900;
+    @apply text-brand-ink;
+  }
+
+  ::selection {
+    @apply bg-brand-emerald text-white;
   }
 
   ::placeholder {
-    @apply text-gray-500;
+    @apply text-slate-400;
   }
 }
