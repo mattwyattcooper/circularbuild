@@ -98,7 +98,7 @@ export default async function Home() {
   const hasLiveListings = cards.length > 0;
 
   return (
-    <main className="flex flex-col gap-8 bg-white pb-14">
+    <main className="flex flex-col bg-white">
       <HeroSection stats={FEATURED_STATS} />
 
       <section className="relative isolate w-full overflow-hidden bg-gradient-to-tr from-emerald-900 via-emerald-800 to-slate-900 py-12 text-white sm:py-14 lg:py-16">
