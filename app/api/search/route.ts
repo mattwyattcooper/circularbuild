@@ -19,13 +19,19 @@ export async function POST(req: NextRequest) {
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !anonKey) {
       return NextResponse.json(
         { error: "Supabase environment variables are not configured." },
         { status: 500 },
       );
     }
-    const supa = createClient(url, anonKey);
+    const supa = createClient(url, serviceRoleKey ?? anonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
     const {
       q,
