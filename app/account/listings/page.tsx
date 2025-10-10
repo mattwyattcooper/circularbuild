@@ -15,7 +15,7 @@ type ListingRow = {
   count: number;
   available_until: string;
   status: string;
-  updated_at: string;
+  created_at: string;
   description: string | null;
 };
 
@@ -51,10 +51,10 @@ export default function MyListingsPage() {
     const { data, error } = await supabase
       .from("listings")
       .select(
-        "id,title,type,shape,count,available_until,status,updated_at,description",
+        "id,title,type,shape,count,available_until,status,created_at,description",
       )
       .eq("owner_id", uid)
-      .order("updated_at", { ascending: false });
+      .order("created_at", { ascending: false });
     if (error) {
       setMsg(`Failed to load listings: ${error.message}`);
       setRows([]);
@@ -237,7 +237,7 @@ export default function MyListingsPage() {
                           </span>
                         </p>
                         <p className="text-xs text-emerald-100/60">
-                          Updated {new Date(row.updated_at).toLocaleString()}
+                          Added {new Date(row.created_at).toLocaleString()}
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
