@@ -98,7 +98,7 @@ export default async function Home() {
   const hasLiveListings = cards.length > 0;
 
   return (
-    <main className="flex flex-col bg-slate-950">
+    <main className="flex flex-col">
       <HeroSection stats={FEATURED_STATS} />
 
       <section className="relative isolate w-full overflow-hidden bg-gradient-to-tr from-emerald-900 via-emerald-800 to-slate-900 py-12 text-white sm:py-14 lg:py-16">
@@ -255,9 +255,9 @@ export default async function Home() {
       </ParallaxSection>
 
       <ParallaxSection
-        imageSrc="https://images.unsplash.com/photo-1451976426598-a7593bd6d0b2?auto=format&fit=crop&w=2400&q=80"
+        imageSrc="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Community volunteers unloading reclaimed construction materials"
-        overlayClassName="bg-slate-950/60"
+        overlayClassName="bg-slate-950/55"
         className="mt-[-1px]"
         speed={0.22}
         maxOffset={200}
