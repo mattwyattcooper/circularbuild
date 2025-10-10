@@ -148,12 +148,12 @@ export default async function Home() {
       <ParallaxSection
         imageSrc="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Stacks of reclaimed timber organized inside a warehouse"
-        overlayClassName="bg-slate-950/70"
-        className="mt-[-1px] pt-4 pb-3 md:pt-6 md:pb-4"
+        overlayClassName="bg-slate-950/65"
+        className="mt-[-1px]"
         speed={0.2}
         maxOffset={180}
       >
-        <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-[60vh] max-w-6xl flex-col justify-center gap-8 px-4 py-12 sm:px-6 md:py-16 lg:px-8">
           <div className="space-y-3 text-white">
             <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
               Marketplace preview
@@ -205,12 +205,12 @@ export default async function Home() {
       <ParallaxSection
         imageSrc="https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Crew lifting reclaimed steel beams on a job site"
-        overlayClassName="bg-emerald-950/70"
-        className="mt-[-1px] pt-3 pb-5 md:pt-4 md:pb-6"
+        overlayClassName="bg-emerald-950/65"
+        className="mt-[-1px]"
         speed={0.24}
         maxOffset={220}
       >
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8">
+        <div className="mx-auto grid min-h-[60vh] max-w-6xl gap-10 px-4 py-12 sm:px-6 md:py-16 lg:grid-cols-2 lg:items-center lg:px-8">
           <div className="space-y-4 text-white">
             <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
               Stories from the field
@@ -257,12 +257,12 @@ export default async function Home() {
       <ParallaxSection
         imageSrc="https://images.unsplash.com/photo-1451976426598-a7593bd6d0b2?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Community volunteers unloading reclaimed construction materials"
-        overlayClassName="bg-slate-950/75"
-        className="mt-[-1px] pt-3 pb-4 md:pt-4 md:pb-5"
+        overlayClassName="bg-slate-950/60"
+        className="mt-[-1px]"
         speed={0.22}
         maxOffset={200}
       >
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 sm:px-6 lg:px-8 text-white">
+        <div className="mx-auto flex min-h-[55vh] max-w-6xl flex-col justify-center gap-6 px-4 py-12 text-white sm:px-6 md:py-16 lg:px-8">
           <h2 className="text-[clamp(2rem,3.2vw,3.4rem)] font-semibold leading-tight">
             Ready to keep materials in circulation?
           </h2>
