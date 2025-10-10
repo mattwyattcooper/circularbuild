@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import AuthWall from "@/component/AuthWall";
+import ParallaxSection from "@/component/ParallaxSection";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -146,9 +147,16 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
     }
   }
 
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await submit();
+  };
+
+  const isErrorMessage = msg.trim().toLowerCase().startsWith("error");
+
   if (authStatus === "checking") {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-50 text-slate-700">
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-emerald-950 text-emerald-100">
         Checking authentication…
       </main>
     );
@@ -156,8 +164,11 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
 
   if (authStatus === "unauthenticated") {
     return (
-      <main className="relative min-h-screen bg-gray-50">
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <main className="relative min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+        <div className="absolute inset-0 opacity-40" aria-hidden>
+          <div className="h-full w-full bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_55%)]" />
+        </div>
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16">
           <div className="w-full max-w-md">
             <AuthWall
               title="Sign in required"
@@ -172,173 +183,256 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
   }
 
   return (
-    <main className="mx-auto max-w-3xl p-6 text-gray-900">
-      <h1 className="mb-4 text-3xl font-semibold text-emerald-700">
-        Donate an item
-      </h1>
-      <p className="mb-6 max-w-2xl text-sm text-gray-600">
-        Share surplus material so it can find a second life instead of heading
-        to landfill. Provide accurate details, photos, and availability to help
-        builders plan pickups.
-      </p>
+    <main className="flex flex-col text-white">
+      <ParallaxSection
+        imageSrc="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=2400&q=80"
+        imageAlt="Contractors preparing reclaimed structural lumber"
+        overlayClassName="bg-slate-950/65"
+        className="mt-[-1px]"
+        speed={0.24}
+        maxOffset={220}
+      >
+        <div className="mx-auto flex min-h-[60vh] max-w-6xl flex-col justify-center gap-10 px-4 py-16 sm:px-6 lg:flex-row lg:items-center lg:gap-16 lg:px-8">
+          <div className="flex-1 space-y-6">
+            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
+              Share surplus materials
+            </span>
+            <h1 className="text-[clamp(2.25rem,4vw,3.75rem)] font-extrabold leading-tight">
+              Publish donations that keep projects stocked and landfill waste
+              low.
+            </h1>
+            <p className="max-w-2xl text-base text-emerald-100/90 sm:text-lg">
+              Verified nonprofits, student builders, and neighbors rely on your
+              leftover materials. List availability, upload quick photos, and
+              we’ll take care of matching requests and coordinating pickups.
+            </p>
+          </div>
+          <div className="w-full max-w-sm space-y-4 rounded-3xl border border-white/15 bg-white/10 p-6 shadow-xl backdrop-blur-lg">
+            <h2 className="text-lg font-semibold text-white">
+              Donation quick facts
+            </h2>
+            <ul className="space-y-3 text-sm text-emerald-100/90">
+              <li>• Listings notify builders in your region instantly.</li>
+              <li>• Chat threads and pickup notes keep handoffs simple.</li>
+              <li>
+                • Diversion metrics are logged automatically for your records.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </ParallaxSection>
 
-      <div className="grid grid-cols-1 gap-4 rounded-xl border border-emerald-100 bg-white p-4 md:grid-cols-2">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Title *</span>
-          <input
-            className="rounded-lg border px-3 py-2"
-            placeholder="e.g., 2x4 offcuts bundle"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Material type *</span>
-          <select
-            className="rounded-lg border px-3 py-2"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-          >
-            {MATERIALS.map((m) => (
-              <option key={m}>{m}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Shape *</span>
-          <input
-            className="rounded-lg border px-3 py-2"
-            placeholder={`e.g., 2x4, 1" pipe`}
-            value={shape}
-            onChange={(e) => setShape(e.target.value)}
-            required
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Number of pieces *</span>
-          <input
-            type="number"
-            min={1}
-            max={9999}
-            className="rounded-lg border px-3 py-2"
-            value={count}
-            onChange={(e) => {
-              const value = Number.parseInt(e.target.value, 10);
-              setCount(
-                Number.isNaN(value) ? 1 : Math.max(1, Math.min(9999, value)),
-              );
-            }}
-          />
-          <span className="text-xs text-gray-500">
-            Use the best estimate if you are unsure.
-          </span>
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Available until *</span>
-          <input
-            type="date"
-            className="rounded-lg border px-3 py-2"
-            value={available}
-            onChange={(e) => setAvailable(e.target.value)}
-            min={todayISO()}
-            required
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">
-            Location (address or ZIP) *
-          </span>
-          <input
-            className="rounded-lg border px-3 py-2"
-            placeholder="ZIP or full address"
-            value={locationText}
-            onChange={(e) => setLocationText(e.target.value)}
-            required
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 md:col-span-2">
-          <span className="text-sm font-medium">Description *</span>
-          <textarea
-            className="min-h-[120px] w-full rounded-lg border px-3 py-2"
-            placeholder="Details, dimensions, condition, pickup instructions…"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 md:col-span-2">
-          <span className="text-sm font-medium">Upload photos (optional)</span>
-          <input
-            id="photos"
-            type="file"
-            accept="image/*"
-            multiple
-            className="rounded-lg border px-3 py-2"
-            onChange={(e) => setFiles(e.target.files)}
-          />
-        </label>
-      </div>
-
-      <div className="mt-6 space-y-4 rounded-xl border border-emerald-100 bg-white p-4">
-        <p className="text-sm text-gray-600">
-          Please confirm your listing is accurate and that you have read the
-          platform guidelines.
-        </p>
-        <label className="flex items-start gap-3">
-          <input
-            type="checkbox"
-            className="mt-1"
-            checked={agreed}
-            onChange={(e) => setAgreed(e.target.checked)}
-          />
-          <span>
-            I agree to the CircularBuild terms, confirm they are truthful, and
-            understand donations are made in good faith.
-          </span>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Digital signature *</span>
-          <input
-            className="mt-2 w-full rounded-lg border px-3 py-2"
-            value={signature}
-            onChange={(e) => setSignature(e.target.value)}
-            placeholder="Your full name"
-            required
-          />
-        </label>
-        <label className="flex items-start gap-3">
-          <input
-            type="checkbox"
-            className="mt-1"
-            checked={consentContact}
-            onChange={(e) => setConsentContact(e.target.checked)}
-          />
-          <span>
-            I consent to be contacted by verified CircularBuild users.
-          </span>
-        </label>
-      </div>
-
-      <div className="mt-4 flex justify-end">
-        <button
-          type="button"
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-white disabled:opacity-60"
-          onClick={submit}
-          disabled={submitting}
+      <section className="relative isolate w-full overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-40"
         >
-          {submitting ? "Publishing…" : "Publish"}
-        </button>
-      </div>
+          <div className="h-full w-full bg-[radial-gradient(circle_at_top_right,_rgba(74,222,128,0.35),_transparent_60%)]" />
+        </div>
+        <div className="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="rounded-3xl border border-white/10 bg-white/10 px-6 py-8 shadow-2xl backdrop-blur-xl sm:px-10 lg:px-12">
+            <div className="mb-10 space-y-4">
+              <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
+                Donation details
+              </span>
+              <p className="max-w-3xl text-sm text-emerald-100/85 sm:text-base">
+                Share accurate specifications so recipients can plan labor and
+                transport. All fields marked with an asterisk are required.
+              </p>
+            </div>
 
-      {msg && <div className="mt-3 text-sm">{msg}</div>}
+            <form className="space-y-10" onSubmit={handleSubmit}>
+              <div className="grid gap-6 sm:grid-cols-2">
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                    Title *
+                  </span>
+                  <input
+                    className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    placeholder="e.g., 2x4 offcuts bundle"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    required
+                  />
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                    Material type *
+                  </span>
+                  <select
+                    className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                  >
+                    {MATERIALS.map((m) => (
+                      <option key={m}>{m}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                    Shape *
+                  </span>
+                  <input
+                    className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    placeholder={`e.g., 2x4, 1" pipe`}
+                    value={shape}
+                    onChange={(e) => setShape(e.target.value)}
+                    required
+                  />
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                    Number of pieces *
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={9999}
+                    className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    value={count}
+                    onChange={(e) => {
+                      const value = Number.parseInt(e.target.value, 10);
+                      setCount(
+                        Number.isNaN(value)
+                          ? 1
+                          : Math.max(1, Math.min(9999, value)),
+                      );
+                    }}
+                  />
+                  <span className="text-xs text-emerald-100/70">
+                    Use the best estimate if you are unsure.
+                  </span>
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                    Available until *
+                  </span>
+                  <input
+                    type="date"
+                    className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    value={available}
+                    onChange={(e) => setAvailable(e.target.value)}
+                    min={todayISO()}
+                    required
+                  />
+                </label>
+
+                <label className="flex flex-col gap-2 sm:col-span-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                    Location (address or ZIP) *
+                  </span>
+                  <input
+                    className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    placeholder="ZIP or full address"
+                    value={locationText}
+                    onChange={(e) => setLocationText(e.target.value)}
+                    required
+                  />
+                </label>
+              </div>
+
+              <div className="grid gap-6">
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                    Description *
+                  </span>
+                  <textarea
+                    className="min-h-[140px] rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    placeholder="Details, dimensions, condition, pickup instructions…"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    required
+                  />
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                    Upload photos (optional)
+                  </span>
+                  <input
+                    id="photos"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="rounded-2xl border border-white/20 bg-white/80 px-4 py-3 text-sm text-slate-900 shadow-sm file:mr-4 file:rounded-full file:border-0 file:bg-emerald-500 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-emerald-400"
+                    onChange={(e) => setFiles(e.target.files)}
+                  />
+                  <span className="text-xs text-emerald-100/70">
+                    JPG or PNG up to 10MB each. Clear, well-lit photos
+                    accelerate matches.
+                  </span>
+                </label>
+              </div>
+
+              <div className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-6 shadow-inner">
+                <p className="text-sm text-emerald-100/85">
+                  Confirm the information below so builders can proceed with
+                  confidence.
+                </p>
+                <label className="flex items-start gap-3 text-sm text-emerald-100/85">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-white/40 bg-white/20 text-emerald-500 focus:ring-emerald-400"
+                    checked={agreed}
+                    onChange={(e) => setAgreed(e.target.checked)}
+                  />
+                  <span>
+                    I agree to the CircularBuild terms, confirm the listing is
+                    accurate, and understand donations are made in good faith.
+                  </span>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                    Digital signature *
+                  </span>
+                  <input
+                    className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    value={signature}
+                    onChange={(e) => setSignature(e.target.value)}
+                    placeholder="Your full name"
+                    required
+                  />
+                </label>
+                <label className="flex items-start gap-3 text-sm text-emerald-100/85">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-white/40 bg-white/20 text-emerald-500 focus:ring-emerald-400"
+                    checked={consentContact}
+                    onChange={(e) => setConsentContact(e.target.checked)}
+                  />
+                  <span>
+                    I consent to be contacted by verified CircularBuild users.
+                  </span>
+                </label>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                {msg && (
+                  <span
+                    className={`text-sm ${
+                      isErrorMessage ? "text-rose-200" : "text-emerald-200"
+                    }`}
+                  >
+                    {msg}
+                  </span>
+                )}
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-400 focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-500 disabled:opacity-50"
+                  disabled={submitting}
+                >
+                  {submitting ? "Publishing…" : "Publish donation"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

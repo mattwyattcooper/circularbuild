@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+
 import AuthWall from "@/component/AuthWall";
+import ParallaxSection from "@/component/ParallaxSection";
 import { supabase } from "@/lib/supabaseClient";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
@@ -34,6 +36,8 @@ export default function MyListingsPage() {
     count: 1,
     description: "",
   });
+
+  const messageIsError = /error|failed|unable|could not/i.test(msg);
 
   const loadListings = useCallback(async () => {
     setLoading(true);
@@ -135,161 +139,213 @@ export default function MyListingsPage() {
 
   if (authStatus === "checking") {
     return (
-      <main className="mx-auto max-w-4xl p-6">Checking authentication…</main>
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-emerald-950 text-emerald-100">
+        Checking authentication…
+      </main>
     );
   }
 
   if (authStatus === "unauthenticated") {
     return (
-      <main className="mx-auto max-w-4xl p-6">
-        <AuthWall message="Sign in to manage your listings." />
+      <main className="relative min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+        <div className="absolute inset-0 opacity-40" aria-hidden>
+          <div className="h-full w-full bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_55%)]" />
+        </div>
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16">
+          <div className="w-full max-w-md">
+            <AuthWall message="Sign in to manage your listings." />
+          </div>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-4xl space-y-6 px-4 py-10 text-gray-900">
-      <div>
-        <h1 className="text-2xl font-bold">My listings</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Review active and archived donations. Mark them as procured once a
-          pickup is complete—this automatically closes chats so recipients know
-          the item is no longer available.
-        </p>
-      </div>
-
-      {loading ? (
-        <div>Loading your listings…</div>
-      ) : rows.length === 0 ? (
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 text-sm text-gray-600">
-          You don&apos;t have any listings yet. Head to the Donate tab to share
-          surplus material.
+    <main className="flex flex-col text-white">
+      <ParallaxSection
+        imageSrc="https://images.unsplash.com/photo-1523413651479-597eb2da0ad6?auto=format&fit=crop&w=2400&q=80"
+        imageAlt="Material inventory organized for donation"
+        overlayClassName="bg-slate-950/65"
+        className="mt-[-1px]"
+        speed={0.24}
+        maxOffset={220}
+      >
+        <div className="mx-auto flex min-h-[50vh] max-w-6xl flex-col justify-center gap-6 px-4 py-14 sm:px-6 lg:px-8">
+          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
+            Dashboard
+          </span>
+          <h1 className="text-[clamp(2rem,4vw,3.4rem)] font-extrabold leading-tight">
+            Manage your active and archived material donations.
+          </h1>
+          <p className="max-w-3xl text-sm text-emerald-100/90 sm:text-base">
+            Mark pickups as procured, adjust availability, and keep chats
+            aligned with status updates.
+          </p>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {rows.map((row) => {
-            const isEditing = editing === row.id;
-            return (
-              <div
-                key={row.id}
-                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
-              >
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold">{row.title}</h2>
-                    <p className="text-xs text-gray-500">
-                      {row.type} • {row.shape} • {row.count} pcs
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Status:{" "}
-                      <span className="font-medium uppercase">
-                        {row.status}
-                      </span>
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Updated {new Date(row.updated_at).toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-sm">
-                    {row.status !== "procured" && (
-                      <button
-                        type="button"
-                        className="rounded-lg border border-emerald-500 px-3 py-1 text-emerald-600"
-                        onClick={() => updateStatus(row.id, "procured")}
-                      >
-                        Mark procured
-                      </button>
-                    )}
-                    {row.status !== "removed" && (
-                      <button
-                        type="button"
-                        className="rounded-lg border border-red-200 px-3 py-1 text-red-500"
-                        onClick={() => updateStatus(row.id, "removed")}
-                      >
-                        Remove listing
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="rounded-lg border border-gray-300 px-3 py-1"
-                      onClick={() =>
-                        isEditing ? setEditing(null) : beginEdit(row)
-                      }
-                    >
-                      {isEditing ? "Cancel" : "Edit"}
-                    </button>
-                  </div>
-                </div>
+      </ParallaxSection>
 
-                {isEditing && (
-                  <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
-                    <label className="flex flex-col gap-1">
-                      <span className="font-medium">Available until</span>
-                      <input
-                        type="date"
-                        className="rounded-lg border px-3 py-2"
-                        value={draft.available_until}
-                        onChange={(e) =>
-                          setDraft((prev) => ({
-                            ...prev,
-                            available_until: e.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <span className="font-medium">Count</span>
-                      <input
-                        type="number"
-                        min={1}
-                        className="rounded-lg border px-3 py-2"
-                        value={draft.count}
-                        onChange={(e) =>
-                          setDraft((prev) => ({
-                            ...prev,
-                            count: Number(e.target.value) || 1,
-                          }))
-                        }
-                      />
-                    </label>
-                    <label className="md:col-span-2 flex flex-col gap-1">
-                      <span className="font-medium">Description</span>
-                      <textarea
-                        className="min-h-[120px] rounded-lg border px-3 py-2"
-                        value={draft.description}
-                        onChange={(e) =>
-                          setDraft((prev) => ({
-                            ...prev,
-                            description: e.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                    <div className="md:col-span-2 flex justify-end gap-2">
-                      <button
-                        type="button"
-                        className="rounded-lg border border-gray-300 px-4 py-2"
-                        onClick={() => setEditing(null)}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded-lg bg-emerald-600 px-4 py-2 text-white"
-                        onClick={() => saveEdit(row.id)}
-                      >
-                        Save changes
-                      </button>
+      <section className="relative isolate w-full overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-30"
+          aria-hidden
+        >
+          <div className="h-full w-full bg-[radial-gradient(circle_at_bottom_left,_rgba(74,222,128,0.3),_transparent_60%)]" />
+        </div>
+        <div className="relative mx-auto max-w-5xl space-y-6 px-4 py-14 sm:px-6 lg:px-8">
+          {msg && (
+            <div
+              className={`rounded-2xl border px-4 py-3 text-sm shadow-lg backdrop-blur-lg ${
+                messageIsError
+                  ? "border-rose-200/40 bg-rose-500/20 text-rose-100"
+                  : "border-emerald-200/40 bg-emerald-500/20 text-emerald-100"
+              }`}
+            >
+              {msg}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="rounded-3xl border border-white/15 bg-white/10 px-6 py-10 text-sm text-emerald-100/80 shadow-lg backdrop-blur-lg">
+              Loading your listings…
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="rounded-3xl border border-white/15 bg-white/10 px-6 py-10 text-sm text-emerald-100/80 shadow-lg backdrop-blur-lg">
+              You don&apos;t have any listings yet. Head to the Donate tab to
+              share surplus material.
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {rows.map((row) => {
+                const isEditing = editing === row.id;
+                return (
+                  <article
+                    key={row.id}
+                    className="rounded-3xl border border-white/15 bg-white/10 p-6 shadow-lg backdrop-blur-lg"
+                  >
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <h2 className="text-lg font-semibold text-white">
+                          {row.title}
+                        </h2>
+                        <p className="text-xs text-emerald-100/70">
+                          {row.type} • {row.shape} • {row.count} pcs
+                        </p>
+                        <p className="text-xs text-emerald-100/70">
+                          Status:{" "}
+                          <span className="font-medium uppercase text-emerald-200">
+                            {row.status}
+                          </span>
+                        </p>
+                        <p className="text-xs text-emerald-100/60">
+                          Updated {new Date(row.updated_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+                        {row.status !== "procured" && (
+                          <button
+                            type="button"
+                            className="rounded-full border border-emerald-300/60 px-3 py-1 font-medium text-emerald-200 transition hover:border-white hover:text-white"
+                            onClick={() => updateStatus(row.id, "procured")}
+                          >
+                            Mark procured
+                          </button>
+                        )}
+                        {row.status !== "removed" && (
+                          <button
+                            type="button"
+                            className="rounded-full border border-white/20 px-3 py-1 font-medium text-rose-200 transition hover:border-rose-200"
+                            onClick={() => updateStatus(row.id, "removed")}
+                          >
+                            Remove listing
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="rounded-full border border-white/20 px-3 py-1 font-medium text-emerald-100/80 transition hover:border-white hover:text-white"
+                          onClick={() =>
+                            isEditing ? setEditing(null) : beginEdit(row)
+                          }
+                        >
+                          {isEditing ? "Cancel" : "Edit"}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
 
-      {msg && <div className="text-sm">{msg}</div>}
+                    {isEditing && (
+                      <div className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
+                        <label className="flex flex-col gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                            Available until
+                          </span>
+                          <input
+                            type="date"
+                            className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                            value={draft.available_until}
+                            onChange={(e) =>
+                              setDraft((prev) => ({
+                                ...prev,
+                                available_until: e.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                            Count
+                          </span>
+                          <input
+                            type="number"
+                            min={1}
+                            className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                            value={draft.count}
+                            onChange={(e) =>
+                              setDraft((prev) => ({
+                                ...prev,
+                                count: Number(e.target.value) || 1,
+                              }))
+                            }
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2 sm:col-span-2">
+                          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                            Description
+                          </span>
+                          <textarea
+                            className="min-h-[140px] rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                            value={draft.description}
+                            onChange={(e) =>
+                              setDraft((prev) => ({
+                                ...prev,
+                                description: e.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+                        <div className="flex flex-wrap justify-end gap-2 sm:col-span-2">
+                          <button
+                            type="button"
+                            className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-emerald-100/80 transition hover:border-white hover:text-white"
+                            onClick={() => setEditing(null)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-400 focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-500"
+                            onClick={() => saveEdit(row.id)}
+                          >
+                            Save changes
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
     </main>
   );
 }

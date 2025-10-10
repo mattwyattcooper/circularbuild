@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+
 import AuthWall from "@/component/AuthWall";
+import ParallaxSection from "@/component/ParallaxSection";
 import { supabase } from "@/lib/supabaseClient";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
@@ -34,6 +36,8 @@ export default function WishlistPage() {
   const [rows, setRows] = useState<SavedListing[]>([]);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const messageIsError = /error|unable|could not/i.test(msg);
 
   useEffect(() => {
     if (authStatus !== "authenticated") return;
@@ -92,88 +96,133 @@ export default function WishlistPage() {
 
   if (authStatus === "checking") {
     return (
-      <main className="mx-auto max-w-4xl p-6">Checking authentication…</main>
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-emerald-950 text-emerald-100">
+        Checking authentication…
+      </main>
     );
   }
 
   if (authStatus === "unauthenticated") {
     return (
-      <main className="mx-auto max-w-4xl p-6">
-        <AuthWall message="Sign in to see saved materials." />
+      <main className="relative min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+        <div className="absolute inset-0 opacity-40" aria-hidden>
+          <div className="h-full w-full bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_55%)]" />
+        </div>
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16">
+          <div className="w-full max-w-md">
+            <AuthWall message="Sign in to see saved materials." />
+          </div>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-4xl space-y-6 px-4 py-10 text-gray-900">
-      <div>
-        <h1 className="text-2xl font-bold">My wishlist</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Bookmark materials to revisit later. We&apos;ll keep them here until
-          the listing is marked procured or removed.
-        </p>
-      </div>
-
-      {loading ? (
-        <div>Loading saved items…</div>
-      ) : rows.length === 0 ? (
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 text-sm text-gray-600">
-          Your wishlist is empty. Switch to map or list view on the Search tab
-          to add items that fit your next project.
+    <main className="flex flex-col text-white">
+      <ParallaxSection
+        imageSrc="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=2400&q=80"
+        imageAlt="Builder reviewing project plans"
+        overlayClassName="bg-slate-950/65"
+        className="mt-[-1px]"
+        speed={0.22}
+        maxOffset={200}
+      >
+        <div className="mx-auto flex min-h-[45vh] max-w-6xl flex-col justify-center gap-6 px-4 py-14 sm:px-6 lg:px-8">
+          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
+            Saved materials
+          </span>
+          <h1 className="text-[clamp(2rem,4vw,3.3rem)] font-extrabold leading-tight">
+            Keep potential pickups close while you finalize project needs.
+          </h1>
+          <p className="max-w-3xl text-sm text-emerald-100/90 sm:text-base">
+            Items stay here until a donor marks them procured or removes the
+            listing. Reach out early to secure transport and labor.
+          </p>
         </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {rows.map((row) => {
-            const listing = row.listing;
-            return (
-              <div
-                key={row.id}
-                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
-              >
-                <div className="flex justify-between gap-2">
-                  <div>
-                    <h2 className="text-lg font-semibold">
-                      {listing?.title ?? "Listing"}
-                    </h2>
-                    <p className="text-xs text-gray-500">
-                      {listing?.type} • {listing?.shape}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Available until {listing?.available_until ?? "—"}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Saved {new Date(row.created_at).toLocaleString()}
-                    </p>
+      </ParallaxSection>
+
+      <section className="relative isolate w-full overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-30"
+          aria-hidden
+        >
+          <div className="h-full w-full bg-[radial-gradient(circle_at_bottom_right,_rgba(74,222,128,0.3),_transparent_60%)]" />
+        </div>
+        <div className="relative mx-auto max-w-5xl space-y-6 px-4 py-14 sm:px-6 lg:px-8">
+          {msg && (
+            <div
+              className={`rounded-2xl border px-4 py-3 text-sm shadow-lg backdrop-blur-lg ${
+                messageIsError
+                  ? "border-rose-200/40 bg-rose-500/20 text-rose-100"
+                  : "border-emerald-200/40 bg-emerald-500/20 text-emerald-100"
+              }`}
+            >
+              {msg}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="rounded-3xl border border-white/15 bg-white/10 px-6 py-10 text-sm text-emerald-100/80 shadow-lg backdrop-blur-lg">
+              Loading saved items…
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="rounded-3xl border border-white/15 bg-white/10 px-6 py-10 text-sm text-emerald-100/80 shadow-lg backdrop-blur-lg">
+              Your wishlist is empty. Switch to map or list view on the Search
+              tab to add items that fit your next project.
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {rows.map((row) => {
+                const listing = row.listing;
+                return (
+                  <div
+                    key={row.id}
+                    className="rounded-3xl border border-white/15 bg-white/10 p-6 shadow-lg backdrop-blur-lg"
+                  >
+                    <div className="flex justify-between gap-3">
+                      <div>
+                        <h2 className="text-lg font-semibold text-white">
+                          {listing?.title ?? "Listing"}
+                        </h2>
+                        <p className="text-xs text-emerald-100/70">
+                          {listing?.type} • {listing?.shape}
+                        </p>
+                        <p className="text-xs text-emerald-100/70">
+                          Available until {listing?.available_until ?? "—"}
+                        </p>
+                        <p className="text-xs text-emerald-100/60">
+                          Saved {new Date(row.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-rose-200 transition hover:text-white"
+                        onClick={() => remove(row.listing_id)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    {listing?.status !== "active" && (
+                      <p className="mt-2 text-xs text-amber-200/80">
+                        This listing is marked {listing?.status}. Reach out to
+                        the donor to confirm availability.
+                      </p>
+                    )}
+                    <div className="mt-4 flex gap-3">
+                      <Link
+                        href={`/listing/${row.listing_id}`}
+                        className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-400"
+                      >
+                        View listing
+                      </Link>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    className="text-xs text-red-500"
-                    onClick={() => remove(row.listing_id)}
-                  >
-                    Remove
-                  </button>
-                </div>
-                {listing?.status !== "active" && (
-                  <p className="mt-2 text-xs text-orange-600">
-                    This listing is marked {listing?.status}. Reach out to the
-                    donor to confirm availability.
-                  </p>
-                )}
-                <div className="mt-3 flex gap-2">
-                  <Link
-                    href={`/listing/${row.listing_id}`}
-                    className="rounded-lg bg-gray-900 px-3 py-2 text-sm text-white"
-                  >
-                    View listing
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
-
-      {msg && <div className="text-sm">{msg}</div>}
+      </section>
     </main>
   );
 }

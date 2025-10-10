@@ -3,7 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+
 import AuthWall from "@/component/AuthWall";
+import ParallaxSection from "@/component/ParallaxSection";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -62,74 +64,125 @@ export default function ChatsIndex() {
 
   if (authStatus === "checking") {
     return (
-      <main className="max-w-4xl mx-auto p-6">Checking authentication…</main>
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-emerald-950 text-emerald-100">
+        Checking authentication…
+      </main>
     );
   }
 
   if (authStatus === "unauthenticated") {
     return (
-      <main className="max-w-4xl mx-auto p-6">
-        <AuthWall message="Sign in to see conversations with donors." />
+      <main className="relative min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+        <div className="absolute inset-0 opacity-40" aria-hidden>
+          <div className="h-full w-full bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_55%)]" />
+        </div>
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16">
+          <div className="w-full max-w-md">
+            <AuthWall message="Sign in to see conversations with donors." />
+          </div>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <h1 className="text-3xl font-semibold text-emerald-700">Chats</h1>
-      <p className="mt-1 mb-4 text-sm text-gray-600">
-        Keep pickup logistics organized and document material transfers with a
-        clear audit trail. Once a listing is marked procured, the conversation
-        is archived automatically.
-      </p>
-      {msg && (
-        <div className="mb-3 rounded-lg border border-red-100 bg-red-50 px-4 py-2 text-sm text-red-700">
-          {msg}
+    <main className="flex flex-col text-white">
+      <ParallaxSection
+        imageSrc="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=2400&q=80"
+        imageAlt="Teammates coordinating around a table"
+        overlayClassName="bg-slate-950/65"
+        className="mt-[-1px]"
+        speed={0.22}
+        maxOffset={200}
+      >
+        <div className="mx-auto flex min-h-[50vh] max-w-6xl flex-col justify-center gap-8 px-4 py-16 sm:px-6 lg:flex-row lg:items-center lg:gap-16 lg:px-8">
+          <div className="flex-1 space-y-5">
+            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
+              Conversations
+            </span>
+            <h1 className="text-[clamp(2rem,4vw,3.5rem)] font-extrabold leading-tight">
+              Keep pickups coordinated and transparent with every donor
+              touchpoint.
+            </h1>
+            <p className="max-w-2xl text-sm text-emerald-100/90 sm:text-base">
+              Use chat threads to confirm logistics, share photos, and gather
+              the details your crew needs before arriving onsite.
+            </p>
+          </div>
+          <div className="w-full max-w-sm space-y-3 rounded-3xl border border-white/15 bg-white/10 p-6 shadow-xl backdrop-blur-lg text-sm text-emerald-100/90">
+            <div className="text-lg font-semibold text-white">
+              Smart handoffs
+            </div>
+            <p>
+              • Message history keeps everyone aligned even as crews rotate.
+            </p>
+            <p>• Closing a listing archives the thread for future reference.</p>
+            <p>
+              • Share pickup notes and contacts so recipients stay informed.
+            </p>
+          </div>
         </div>
-      )}
-      <div className="space-y-3">
-        {rows.map((c) => (
-          <Link
-            key={c.id}
-            href={`/chats/${c.id}`}
-            className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-white p-3 transition hover:border-emerald-200 hover:bg-emerald-50/40"
-          >
-            {/* thumb */}
-            {c.listing?.photos?.[0] ? (
-              <Image
-                src={c.listing.photos[0]}
-                alt={c.listing.title}
-                width={64}
-                height={64}
-                sizes="64px"
-                className="h-16 w-16 rounded-lg object-cover"
-              />
-            ) : (
-              <div className="w-16 h-16 bg-gray-100 rounded-lg grid place-items-center text-xs text-gray-500">
-                No photo
+      </ParallaxSection>
+
+      <section className="relative isolate w-full overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-30"
+          aria-hidden
+        >
+          <div className="h-full w-full bg-[radial-gradient(circle_at_bottom_left,_rgba(74,222,128,0.3),_transparent_55%)]" />
+        </div>
+        <div className="relative mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8">
+          {msg && (
+            <div className="mb-6 rounded-2xl border border-rose-200/40 bg-rose-500/20 px-4 py-3 text-sm text-rose-100">
+              {msg}
+            </div>
+          )}
+          <div className="space-y-4">
+            {rows.map((c) => (
+              <Link
+                key={c.id}
+                href={`/chats/${c.id}`}
+                className="group flex items-center gap-4 rounded-3xl border border-white/15 bg-white/10 px-5 py-4 shadow-lg backdrop-blur-lg transition hover:border-emerald-200/60 hover:bg-white/20"
+              >
+                {c.listing?.photos?.[0] ? (
+                  <Image
+                    src={c.listing.photos[0]}
+                    alt={c.listing.title}
+                    width={64}
+                    height={64}
+                    sizes="64px"
+                    className="h-16 w-16 rounded-2xl object-cover"
+                  />
+                ) : (
+                  <div className="grid h-16 w-16 place-items-center rounded-2xl border border-white/20 bg-white/10 text-[11px] text-emerald-100/70">
+                    No photo
+                  </div>
+                )}
+                <div className="flex flex-1 flex-col gap-1">
+                  <span className="text-base font-semibold text-white">
+                    {c.listing?.title ?? "Listing"}
+                  </span>
+                  <span className="text-xs text-emerald-100/70">
+                    {new Date(c.created_at).toLocaleString()} •{" "}
+                    {c.is_active ? "Active" : "Closed"}
+                  </span>
+                </div>
+                <span className="inline-flex items-center rounded-full border border-emerald-400/60 px-3 py-1 text-xs font-medium text-emerald-200 transition group-hover:border-white group-hover:text-white">
+                  Open thread
+                </span>
+              </Link>
+            ))}
+
+            {rows.length === 0 && (
+              <div className="rounded-3xl border border-white/15 bg-white/10 px-6 py-8 text-sm text-emerald-100/80 backdrop-blur-lg">
+                No chats yet. Once you reach out about a listing—or a donor
+                contacts you—the conversation will appear here for easy
+                follow-up.
               </div>
             )}
-            {/* info */}
-            <div className="flex-1">
-              <div className="font-medium">{c.listing?.title ?? "Listing"}</div>
-              <div className="text-xs text-gray-600">
-                {new Date(c.created_at).toLocaleString()}
-                {" • "}
-                {c.is_active ? "Active" : "Closed"}
-              </div>
-            </div>
-            <div className="rounded-full border border-emerald-300 px-3 py-1 text-sm text-emerald-700">
-              Open
-            </div>
-          </Link>
-        ))}
-        {rows.length === 0 && (
-          <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-emerald-800">
-            No chats yet. Once you reach out about a listing—or a donor contacts
-            you—the conversation will appear here for easy follow-up.
           </div>
-        )}
-      </div>
+        </div>
+      </section>
     </main>
   );
 }

@@ -257,7 +257,7 @@ export default async function Home() {
       <ParallaxSection
         imageSrc="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Community volunteers unloading reclaimed construction materials"
-        overlayClassName="bg-slate-950/55"
+        overlayClassName="bg-slate-950/40"
         className="mt-[-1px]"
         speed={0.22}
         maxOffset={200}

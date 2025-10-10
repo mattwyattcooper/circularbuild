@@ -1,6 +1,7 @@
 "use client";
 
 import AuthWall from "@/component/AuthWall";
+import ParallaxSection from "@/component/ParallaxSection";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 const FAQS = [
@@ -41,55 +42,87 @@ export default function FAQsPage() {
 
   if (authStatus === "checking") {
     return (
-      <main className="mx-auto max-w-3xl p-6">Checking authentication…</main>
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-emerald-950 text-emerald-100">
+        Checking authentication…
+      </main>
     );
   }
 
   if (authStatus === "unauthenticated") {
     return (
-      <main className="mx-auto max-w-3xl p-6">
-        <AuthWall message="Sign in to explore CircularBuild FAQs." />
+      <main className="relative min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+        <div className="absolute inset-0 opacity-40" aria-hidden>
+          <div className="h-full w-full bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_55%)]" />
+        </div>
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16">
+          <div className="w-full max-w-md">
+            <AuthWall message="Sign in to explore CircularBuild FAQs." />
+          </div>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-3xl space-y-8 px-4 py-10 text-gray-900">
-      <div className="rounded-3xl border border-emerald-100 bg-emerald-50/60 p-6">
-        <h1 className="text-3xl font-semibold text-emerald-700">
-          Frequently Asked Questions
-        </h1>
-        <p className="mt-2 text-sm text-emerald-900">
-          A quick primer on how CircularBuild keeps valuable materials
-          circulating. Still curious? Reach out through the contact form and
-          we&apos;ll get back to you.
-        </p>
-      </div>
+    <main className="flex flex-col text-white">
+      <ParallaxSection
+        imageSrc="https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=2400&q=80"
+        imageAlt="Team discussing material reuse logistics"
+        overlayClassName="bg-slate-950/65"
+        className="mt-[-1px]"
+        speed={0.22}
+        maxOffset={200}
+      >
+        <div className="mx-auto flex min-h-[45vh] max-w-6xl flex-col justify-center gap-6 px-4 py-14 sm:px-6 lg:px-8">
+          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
+            Help desk
+          </span>
+          <h1 className="text-[clamp(2rem,4vw,3.4rem)] font-extrabold leading-tight">
+            Frequently asked questions about getting materials moving.
+          </h1>
+          <p className="max-w-2xl text-sm text-emerald-100/90 sm:text-base">
+            Browse quick answers to the most common donor and builder questions.
+            Need more detail? Reach out anytime.
+          </p>
+        </div>
+      </ParallaxSection>
 
-      <div className="space-y-6">
-        {FAQS.map((item) => (
-          <div
-            key={item.question}
-            className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm"
-          >
-            <h2 className="text-lg font-semibold text-emerald-700">
-              {item.question}
-            </h2>
-            <p className="mt-3 text-sm text-gray-600">{item.answer}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 text-sm text-emerald-900">
-        Still have questions?{" "}
-        <a
-          href="/contact"
-          className="font-semibold text-emerald-700 underline underline-offset-4 hover:text-emerald-900"
+      <section className="relative isolate w-full overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-30"
+          aria-hidden
         >
-          Head to the Contact tab
-        </a>{" "}
-        and tell us how we can help.
-      </div>
+          <div className="h-full w-full bg-[radial-gradient(circle_at_bottom_left,_rgba(74,222,128,0.3),_transparent_60%)]" />
+        </div>
+        <div className="relative mx-auto max-w-4xl px-4 py-14 sm:px-6 lg:px-8">
+          <div className="space-y-6">
+            {FAQS.map((item) => (
+              <article
+                key={item.question}
+                className="rounded-3xl border border-white/15 bg-white/10 px-6 py-5 shadow-lg backdrop-blur-lg"
+              >
+                <h2 className="text-lg font-semibold text-white">
+                  {item.question}
+                </h2>
+                <p className="mt-3 text-sm text-emerald-100/85">
+                  {item.answer}
+                </p>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-10 rounded-3xl border border-white/15 bg-white/10 px-6 py-5 text-sm text-emerald-100/85 shadow-lg backdrop-blur-lg">
+            Still have questions?{" "}
+            <a
+              href="/contact"
+              className="font-semibold text-emerald-200 underline underline-offset-4 hover:text-white"
+            >
+              Head to the Contact tab
+            </a>{" "}
+            and tell us how we can help.
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

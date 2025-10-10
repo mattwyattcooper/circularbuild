@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import AuthWall from "@/component/AuthWall";
+import ParallaxSection from "@/component/ParallaxSection";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { supabase } from "../../../lib/supabaseClient";
 
@@ -129,71 +132,118 @@ export default function ChatPage() {
 
   if (authStatus === "checking") {
     return (
-      <main className="max-w-3xl mx-auto p-6">Checking authentication…</main>
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-emerald-950 text-emerald-100">
+        Checking authentication…
+      </main>
     );
   }
 
   if (authStatus === "unauthenticated") {
     return (
-      <main className="max-w-3xl mx-auto p-6">
-        <AuthWall message="Sign in to view and manage chats." />
+      <main className="relative min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+        <div className="absolute inset-0 opacity-40" aria-hidden>
+          <div className="h-full w-full bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_55%)]" />
+        </div>
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16">
+          <div className="w-full max-w-md">
+            <AuthWall message="Sign in to view and manage chats." />
+          </div>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-3xl p-6">
-      <h1 className="mb-4 text-3xl font-semibold text-emerald-700">Chat</h1>
-
-      {closed && (
-        <div className="mb-3 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
-          This chat is closed (listing is no longer active).
+    <main className="flex flex-col text-white">
+      <ParallaxSection
+        imageSrc="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=2400&q=80"
+        imageAlt="Team aligning around reuse logistics"
+        overlayClassName="bg-slate-950/65"
+        className="mt-[-1px]"
+        speed={0.22}
+        maxOffset={200}
+      >
+        <div className="mx-auto flex min-h-[45vh] max-w-6xl flex-col justify-center gap-6 px-4 py-14 sm:px-6 lg:px-8">
+          <Link
+            href="/chats"
+            className="inline-flex w-max items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200 transition hover:border-white hover:bg-white/20"
+          >
+            ← Back to chats
+          </Link>
+          <div className="space-y-4">
+            <h1 className="text-[clamp(2rem,4vw,3.25rem)] font-extrabold leading-tight">
+              Chat thread
+            </h1>
+            <p className="max-w-2xl text-sm text-emerald-100/85 sm:text-base">
+              Align on pickup timing, share photos, and capture any adjustments
+              in one place. Messages send in real-time to every participant.
+            </p>
+          </div>
         </div>
-      )}
+      </ParallaxSection>
 
-      <div className="mb-4 h-[50vh] space-y-2 overflow-auto rounded-xl border border-emerald-100 bg-white p-3">
-        {messages.map((m) => {
-          const mine = myUserId && m.sender_id === myUserId;
-          return (
-            <div
-              key={m.id}
-              className={`max-w-[80%] px-3 py-2 rounded-lg ${
-                mine
-                  ? "ml-auto bg-emerald-600 text-white"
-                  : "bg-gray-100 text-gray-900"
-              }`}
-            >
-              <div className="text-sm">{m.body}</div>
-              <div
-                className={`text-[10px] mt-1 opacity-70 ${mine ? "text-white" : "text-gray-600"}`}
-              >
-                {new Date(m.created_at).toLocaleString()}
-              </div>
-            </div>
-          );
-        })}
-        <div ref={endRef} />
-      </div>
-
-      <div className="flex gap-2">
-        <input
-          className="flex-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-black placeholder-gray-500 focus:border-emerald-500 focus:outline-none"
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder={closed ? "Chat closed" : "Type your message..."}
-          disabled={closed}
-        />
-        <button
-          type="button"
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-white transition hover:bg-emerald-700 disabled:bg-emerald-200"
-          onClick={sendMessage}
-          disabled={closed || !body.trim()}
+      <section className="relative isolate w-full overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-30"
+          aria-hidden
         >
-          Send
-        </button>
-      </div>
+          <div className="h-full w-full bg-[radial-gradient(circle_at_bottom_left,_rgba(74,222,128,0.3),_transparent_60%)]" />
+        </div>
+        <div className="relative mx-auto max-w-4xl px-4 py-14 sm:px-6 lg:px-8">
+          {closed && (
+            <div className="mb-4 rounded-2xl border border-emerald-400/30 bg-emerald-500/20 px-4 py-3 text-sm text-emerald-100">
+              This chat is closed (listing is no longer active).
+            </div>
+          )}
 
-      {msg && <div className="mt-3 text-sm text-red-600">{msg}</div>}
+          <div className="mb-6 h-[50vh] space-y-2 overflow-auto rounded-3xl border border-white/15 bg-white/10 p-4 shadow-inner backdrop-blur-lg">
+            {messages.map((m) => {
+              const mine = myUserId && m.sender_id === myUserId;
+              return (
+                <div
+                  key={m.id}
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                    mine
+                      ? "ml-auto bg-emerald-500 text-white"
+                      : "bg-white/80 text-slate-900"
+                  }`}
+                >
+                  <div>{m.body}</div>
+                  <div
+                    className={`mt-2 text-[10px] opacity-70 ${
+                      mine ? "text-white" : "text-slate-600"
+                    }`}
+                  >
+                    {new Date(m.created_at).toLocaleString()}
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={endRef} />
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-3xl border border-white/15 bg-white/10 p-4 shadow-inner backdrop-blur-lg">
+            <div className="flex gap-3">
+              <input
+                className="flex-1 rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder={closed ? "Chat closed" : "Type your message..."}
+                disabled={closed}
+              />
+              <button
+                type="button"
+                className="rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-400 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-500 disabled:bg-emerald-300"
+                onClick={sendMessage}
+                disabled={closed || !body.trim()}
+              >
+                Send
+              </button>
+            </div>
+            {msg && <div className="text-sm text-rose-200">{msg}</div>}
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
