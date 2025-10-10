@@ -45,7 +45,12 @@ type Listing = {
     name: string | null;
     avatar_url: string | null;
     bio: string | null;
-  } | null;
+  } | null | Array<{
+      id: string;
+      name: string | null;
+      avatar_url: string | null;
+      bio: string | null;
+    }>;
 };
 
 export default function SearchPage() {
@@ -395,7 +400,7 @@ export default function SearchPage() {
           <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {items.map((l) => {
               const saved = wishlistIds.has(l.id);
-              const owner = l.owner;
+              const owner = Array.isArray(l.owner) ? l.owner[0] : l.owner;
               return (
                 <div
                   key={l.id}

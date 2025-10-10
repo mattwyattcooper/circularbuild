@@ -95,13 +95,17 @@ export default async function Home() {
     availableLabel: listing.available_until
       ? `Available until ${listing.available_until}`
       : undefined,
-    owner: listing.owner
-      ? {
-          id: listing.owner.id,
-          name: listing.owner.name,
-          avatarUrl: listing.owner.avatar_url,
-        }
-      : undefined,
+    owner: (() => {
+      const owner = Array.isArray(listing.owner)
+        ? listing.owner[0]
+        : listing.owner;
+      if (!owner) return undefined;
+      return {
+        id: owner.id,
+        name: owner.name,
+        avatarUrl: owner.avatar_url,
+      };
+    })(),
   }));
 
   const hasLiveListings = cards.length > 0;

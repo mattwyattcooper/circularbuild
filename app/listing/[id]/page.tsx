@@ -23,12 +23,20 @@ type Listing = {
   lat: number | null;
   lng: number | null;
   created_at: string;
-  owner?: {
-    id: string;
-    name: string | null;
-    avatar_url: string | null;
-    bio: string | null;
-  } | null;
+  owner?:
+    | {
+        id: string;
+        name: string | null;
+        avatar_url: string | null;
+        bio: string | null;
+      }
+    | Array<{
+        id: string;
+        name: string | null;
+        avatar_url: string | null;
+        bio: string | null;
+      }>
+    | null;
 };
 
 export default function ListingDetail() {
@@ -164,7 +172,7 @@ export default function ListingDetail() {
     return <main className="p-6">Listing not found.</main>;
   }
 
-  const owner = l.owner;
+  const owner = Array.isArray(l.owner) ? l.owner[0] : l.owner;
 
   return (
     <main className="mx-auto max-w-4xl space-y-8 px-4 py-10 text-white">
