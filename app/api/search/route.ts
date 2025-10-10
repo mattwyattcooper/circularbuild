@@ -57,7 +57,9 @@ export async function POST(req: NextRequest) {
     // 2) Pull all active listings (MVP; we’ll refine with SQL later)
     const { data, error } = await supa
       .from("listings")
-      .select("*")
+      .select(
+        "*, owner:profiles(id,name,avatar_url,bio)",
+      )
       .eq("status", "active")
       .order("created_at", { ascending: false });
 

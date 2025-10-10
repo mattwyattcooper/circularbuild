@@ -79,7 +79,9 @@ export default async function Home() {
 
   const { data: listings } = await supabase
     .from("listings")
-    .select("id, title, type, shape, location_text, available_until, photos")
+    .select(
+      "id, title, type, shape, location_text, available_until, photos, owner:profiles(id,name,avatar_url)",
+    )
     .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(4);
@@ -92,6 +94,13 @@ export default async function Home() {
     location: listing.location_text,
     availableLabel: listing.available_until
       ? `Available until ${listing.available_until}`
+      : undefined,
+    owner: listing.owner
+      ? {
+          id: listing.owner.id,
+          name: listing.owner.name,
+          avatarUrl: listing.owner.avatar_url,
+        }
       : undefined,
   }));
 

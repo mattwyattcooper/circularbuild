@@ -36,6 +36,11 @@ export async function POST(req: Request) {
       id,
       name:
         typeof name === "string" && name.trim().length > 0 ? name.trim() : null,
+      gender: null,
+      age: null,
+      interests: null,
+      bio: null,
+      avatar_url: null,
     });
 
     if (error) {

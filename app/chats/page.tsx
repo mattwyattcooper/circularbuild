@@ -24,9 +24,21 @@ type Listing = {
   photos: string[] | null;
 };
 
+type ProfileSummary = {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+};
+
+type ChatRow = Chat & {
+  listing: Listing | null;
+  counterparty: ProfileSummary | null;
+};
+
 export default function ChatsIndex() {
   const authStatus = useRequireAuth();
-  const [rows, setRows] = useState<(Chat & { listing: Listing | null })[]>([]);
+  const [rows, setRows] = useState<ChatRow[]>([]);
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
@@ -36,7 +48,6 @@ export default function ChatsIndex() {
       const uid = sess.session?.user.id ?? null;
       if (!uid) return;
 
-      // load chats where I'm buyer or seller
       const { data: chats, error } = await supabase
         .from("chats")
         .select("*")
@@ -48,17 +59,60 @@ export default function ChatsIndex() {
         return;
       }
 
-      // fetch listing titles (simple n+1 for MVP)
-      const results: (Chat & { listing: Listing | null })[] = [];
-      for (const c of chats ?? []) {
-        const { data: l } = await supabase
+      const chatRows = chats ?? [];
+      if (chatRows.length === 0) {
+        setRows([]);
+        return;
+      }
+
+      const listingIds = Array.from(new Set(chatRows.map((c) => c.listing_id)));
+      const counterpartyIds = Array.from(
+        new Set(
+          chatRows.map((c) => (c.buyer_id === uid ? c.seller_id : c.buyer_id)),
+        ),
+      );
+
+      const listingMap = new Map<string, Listing>();
+      if (listingIds.length > 0) {
+        const { data: listingData } = await supabase
           .from("listings")
           .select("id,title,photos")
-          .eq("id", c.listing_id)
-          .maybeSingle();
-        results.push({ ...c, listing: l ?? null });
+          .in("id", listingIds);
+        (listingData ?? []).forEach((item) => {
+          listingMap.set(item.id, {
+            id: item.id,
+            title: item.title,
+            photos: item.photos ?? null,
+          });
+        });
       }
-      setRows(results);
+
+      const profileMap = new Map<string, ProfileSummary>();
+      if (counterpartyIds.length > 0) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("id,name,avatar_url,bio")
+          .in("id", counterpartyIds);
+        (profileData ?? []).forEach((p) => {
+          profileMap.set(p.id, {
+            id: p.id,
+            name: p.name ?? null,
+            avatar_url: p.avatar_url ?? null,
+            bio: p.bio ?? null,
+          });
+        });
+      }
+
+      const hydrated: ChatRow[] = chatRows.map((chat) => {
+        const counterpartyId = chat.buyer_id === uid ? chat.seller_id : chat.buyer_id;
+        return {
+          ...chat,
+          listing: listingMap.get(chat.listing_id) ?? null,
+          counterparty: counterpartyId ? profileMap.get(counterpartyId) ?? null : null,
+        };
+      });
+
+      setRows(hydrated);
     })();
   }, [authStatus]);
 
@@ -138,40 +192,88 @@ export default function ChatsIndex() {
             </div>
           )}
           <div className="space-y-4">
-            {rows.map((c) => (
-              <Link
-                key={c.id}
-                href={`/chats/${c.id}`}
-                className="group flex items-center gap-4 rounded-3xl border border-white/15 bg-white/10 px-5 py-4 shadow-lg backdrop-blur-lg transition hover:border-emerald-200/60 hover:bg-white/20"
-              >
-                {c.listing?.photos?.[0] ? (
-                  <Image
-                    src={c.listing.photos[0]}
-                    alt={c.listing.title}
-                    width={64}
-                    height={64}
-                    sizes="64px"
-                    className="h-16 w-16 rounded-2xl object-cover"
-                  />
-                ) : (
-                  <div className="grid h-16 w-16 place-items-center rounded-2xl border border-white/20 bg-white/10 text-[11px] text-emerald-100/70">
-                    No photo
+            {rows.map((c) => {
+              const counterparty = c.counterparty;
+              return (
+                <div
+                  key={c.id}
+                  className="rounded-3xl border border-white/15 bg-white/10 px-5 py-5 shadow-lg backdrop-blur-lg"
+                >
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
+                    {c.listing?.photos?.[0] ? (
+                      <Image
+                        src={c.listing.photos[0]}
+                        alt={c.listing.title}
+                        width={72}
+                        height={72}
+                        sizes="72px"
+                        className="h-18 w-18 rounded-2xl object-cover"
+                      />
+                    ) : (
+                      <div className="grid h-18 w-18 place-items-center rounded-2xl border border-white/20 bg-white/10 text-[11px] text-emerald-100/70">
+                        No photo
+                      </div>
+                    )}
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <span className="text-base font-semibold text-white">
+                          {c.listing?.title ?? "Listing"}
+                        </span>
+                        <div className="text-xs text-emerald-100/70">
+                          {new Date(c.created_at).toLocaleString()} •{" "}
+                          {c.is_active ? "Active" : "Closed"}
+                        </div>
+                      </div>
+                      {counterparty && (
+                        <div className="flex items-center gap-3 text-xs text-emerald-100/70">
+                          <div className="overflow-hidden rounded-full border border-white/20 bg-white/10">
+                            {counterparty.avatar_url ? (
+                              <Image
+                                src={counterparty.avatar_url}
+                                alt={counterparty.name ?? "User avatar"}
+                                width={40}
+                                height={40}
+                                className="h-10 w-10 object-cover"
+                              />
+                            ) : (
+                              <div className="grid h-10 w-10 place-items-center text-[10px] text-emerald-100/70">
+                                No photo
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-white">
+                              {counterparty.name ?? "CircularBuild member"}
+                            </span>
+                            {counterparty.bio && (
+                              <span className="max-w-sm text-[11px] text-emerald-100/60">
+                                {counterparty.bio}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-                <div className="flex flex-1 flex-col gap-1">
-                  <span className="text-base font-semibold text-white">
-                    {c.listing?.title ?? "Listing"}
-                  </span>
-                  <span className="text-xs text-emerald-100/70">
-                    {new Date(c.created_at).toLocaleString()} •{" "}
-                    {c.is_active ? "Active" : "Closed"}
-                  </span>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Link
+                      href={`/chats/${c.id}`}
+                      className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:bg-emerald-400"
+                    >
+                      Open thread
+                    </Link>
+                    {counterparty && (
+                      <Link
+                        href={`/profile/${counterparty.id}`}
+                        className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-emerald-100/80 transition hover:border-white hover:text-white"
+                      >
+                        View profile
+                      </Link>
+                    )}
+                  </div>
                 </div>
-                <span className="inline-flex items-center rounded-full border border-emerald-400/60 px-3 py-1 text-xs font-medium text-emerald-200 transition group-hover:border-white group-hover:text-white">
-                  Open thread
-                </span>
-              </Link>
-            ))}
+              );
+            })}
 
             {rows.length === 0 && (
               <div className="rounded-3xl border border-white/15 bg-white/10 px-6 py-8 text-sm text-emerald-100/80 backdrop-blur-lg">

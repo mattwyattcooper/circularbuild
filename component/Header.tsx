@@ -115,7 +115,7 @@ export default function Header() {
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50"
                     onClick={() => setMenuOpen(false)}
                   >
-                    Account settings
+                    Account Details
                   </Link>
                   <Link
                     href="/account/listings"

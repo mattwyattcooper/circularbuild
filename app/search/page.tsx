@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -39,6 +40,12 @@ type Listing = {
   description: string;
   photos: string[] | null;
   created_at: string;
+  owner?: {
+    id: string;
+    name: string | null;
+    avatar_url: string | null;
+    bio: string | null;
+  } | null;
 };
 
 export default function SearchPage() {
@@ -388,6 +395,7 @@ export default function SearchPage() {
           <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {items.map((l) => {
               const saved = wishlistIds.has(l.id);
+              const owner = l.owner;
               return (
                 <div
                   key={l.id}
@@ -414,6 +422,38 @@ export default function SearchPage() {
                   <div className="text-xs text-gray-500">
                     Avail. until {l.available_until} • {l.location_text}
                   </div>
+                  {owner && (
+                    <Link
+                      href={`/profile/${owner.id}`}
+                      className="mt-3 flex items-center gap-3 rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-sm text-emerald-700 transition hover:border-emerald-200 hover:bg-emerald-100"
+                    >
+                      <div className="h-9 w-9 overflow-hidden rounded-full border border-emerald-200 bg-white">
+                        {owner.avatar_url ? (
+                          <Image
+                            src={owner.avatar_url}
+                            alt={owner.name ?? "Profile avatar"}
+                            width={36}
+                            height={36}
+                            className="h-9 w-9 object-cover"
+                          />
+                        ) : (
+                          <div className="grid h-9 w-9 place-items-center text-[10px] text-emerald-500">
+                            {owner.name ? owner.name[0]?.toUpperCase() : "?"}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-semibold">
+                          {owner.name ?? "CircularBuild member"}
+                        </span>
+                        {owner.bio && (
+                          <span className="text-xs text-emerald-600">
+                            {owner.bio}
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  )}
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
                       type="button"

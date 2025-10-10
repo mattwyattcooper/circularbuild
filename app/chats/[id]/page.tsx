@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -26,6 +27,13 @@ type Chat = {
   created_at: string;
 };
 
+type ProfileSummary = {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+};
+
 export default function ChatPage() {
   const params = useParams<{ id: string }>();
   const chatId = params.id;
@@ -35,6 +43,8 @@ export default function ChatPage() {
   const [body, setBody] = useState("");
   const [msg, setMsg] = useState("");
   const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [buyerProfile, setBuyerProfile] = useState<ProfileSummary | null>(null);
+  const [sellerProfile, setSellerProfile] = useState<ProfileSummary | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
 
   // Scroll to bottom helper
@@ -56,32 +66,46 @@ export default function ChatPage() {
   useEffect(() => {
     if (authStatus !== "authenticated" || !chatId) return;
 
-    // load chat meta
-    supabase
-      .from("chats")
-      .select("*")
-      .eq("id", chatId)
-      .single()
-      .then(({ data, error }) => {
-        if (error) setMsg(`Error loading chat: ${error.message}`);
-        else setChat(data);
-      });
+    const loadChat = async () => {
+      const { data, error } = await supabase
+        .from("chats")
+        .select("*")
+        .eq("id", chatId)
+        .single();
+      if (error) {
+        setMsg(`Error loading chat: ${error.message}`);
+        return;
+      }
+      setChat(data);
 
-    // load existing messages
-    supabase
-      .from("messages")
-      .select("*")
-      .eq("chat_id", chatId)
-      .order("created_at", { ascending: true })
-      .then(({ data, error }) => {
-        if (error) setMsg(`Error loading messages: ${error.message}`);
-        else {
-          setMessages(data || []);
-          setTimeout(scrollToBottom, 0);
-        }
-      });
+      const { data: profileRows } = await supabase
+        .from("profiles")
+        .select("id,name,avatar_url,bio")
+        .in("id", [data.buyer_id, data.seller_id]);
+      if (profileRows) {
+        const profileById = new Map(profileRows.map((p) => [p.id, p]));
+        setBuyerProfile(profileById.get(data.buyer_id) ?? null);
+        setSellerProfile(profileById.get(data.seller_id) ?? null);
+      }
+    };
 
-    // subscribe to new messages
+    const loadMessages = async () => {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("chat_id", chatId)
+        .order("created_at", { ascending: true });
+      if (error) {
+        setMsg(`Error loading messages: ${error.message}`);
+        return;
+      }
+      setMessages(data || []);
+      setTimeout(scrollToBottom, 0);
+    };
+
+    void loadChat();
+    void loadMessages();
+
     const channel = supabase
       .channel(`chat_messages:${chatId}`)
       .on(
@@ -193,6 +217,82 @@ export default function ChatPage() {
           {closed && (
             <div className="mb-4 rounded-2xl border border-emerald-400/30 bg-emerald-500/20 px-4 py-3 text-sm text-emerald-100">
               This chat is closed (listing is no longer active).
+            </div>
+          )}
+
+          {chat && (
+            <div className="mb-6 rounded-3xl border border-white/15 bg-white/10 p-4 text-sm text-emerald-100/85 shadow-inner backdrop-blur-lg">
+              <h2 className="text-base font-semibold text-white">Participants</h2>
+              <div className="mt-3 grid gap-4 md:grid-cols-2">
+                {buyerProfile && (
+                  <Link
+                    href={`/profile/${buyerProfile.id}`}
+                    className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 transition hover:border-white hover:text-white"
+                  >
+                    <div className="h-12 w-12 overflow-hidden rounded-full border border-white/20 bg-white/10">
+                      {buyerProfile.avatar_url ? (
+                        <Image
+                          src={buyerProfile.avatar_url}
+                          alt={buyerProfile.name ?? "Buyer avatar"}
+                          width={48}
+                          height={48}
+                          className="h-12 w-12 object-cover"
+                        />
+                      ) : (
+                        <div className="grid h-12 w-12 place-items-center text-xs text-emerald-100/70">
+                          {buyerProfile.name
+                            ? buyerProfile.name[0]?.toUpperCase()
+                            : "?"}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-white">
+                        {buyerProfile.name ?? "CircularBuild member"}
+                      </span>
+                      {buyerProfile.bio && (
+                        <span className="text-xs text-emerald-100/70">
+                          {buyerProfile.bio}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                )}
+                {sellerProfile && (
+                  <Link
+                    href={`/profile/${sellerProfile.id}`}
+                    className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 transition hover:border-white hover:text-white"
+                  >
+                    <div className="h-12 w-12 overflow-hidden rounded-full border border-white/20 bg-white/10">
+                      {sellerProfile.avatar_url ? (
+                        <Image
+                          src={sellerProfile.avatar_url}
+                          alt={sellerProfile.name ?? "Seller avatar"}
+                          width={48}
+                          height={48}
+                          className="h-12 w-12 object-cover"
+                        />
+                      ) : (
+                        <div className="grid h-12 w-12 place-items-center text-xs text-emerald-100/70">
+                          {sellerProfile.name
+                            ? sellerProfile.name[0]?.toUpperCase()
+                            : "?"}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-white">
+                        {sellerProfile.name ?? "CircularBuild member"}
+                      </span>
+                      {sellerProfile.bio && (
+                        <span className="text-xs text-emerald-100/70">
+                          {sellerProfile.bio}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                )}
+              </div>
             </div>
           )}
 

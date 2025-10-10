@@ -12,6 +12,11 @@ export type ListingCardData = {
   location?: string;
   availableLabel?: string;
   footer?: ReactNode;
+  owner?: {
+    id: string;
+    name?: string | null;
+    avatarUrl?: string | null;
+  };
 };
 
 type Props = {
@@ -53,7 +58,33 @@ export default function ListingCard({ listing }: Props) {
             {listing.availableLabel}
           </p>
         )}
-        <div className="mt-auto">
+        <div className="mt-auto space-y-3">
+          {listing.owner && (
+            <Link
+              href={`/profile/${listing.owner.id}`}
+              className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-sm text-emerald-700 transition hover:border-emerald-200 hover:bg-emerald-100"
+            >
+              <div className="h-8 w-8 overflow-hidden rounded-full border border-emerald-200 bg-white">
+                {listing.owner.avatarUrl ? (
+                  <Image
+                    src={listing.owner.avatarUrl}
+                    alt={listing.owner.name ?? "User avatar"}
+                    width={32}
+                    height={32}
+                    className="h-8 w-8 object-cover"
+                  />
+                ) : (
+                  <div className="grid h-8 w-8 place-items-center text-[10px] text-emerald-500">
+                    {listing.owner.name ? listing.owner.name[0]?.toUpperCase() : "?"}
+                  </div>
+                )}
+              </div>
+              <span className="font-medium">
+                {listing.owner.name ?? "CircularBuild member"}
+              </span>
+            </Link>
+          )}
+          <div>
           {listing.footer ? (
             listing.footer
           ) : (
@@ -65,6 +96,7 @@ export default function ListingCard({ listing }: Props) {
               <span aria-hidden>→</span>
             </Link>
           )}
+        </div>
         </div>
       </div>
     </article>

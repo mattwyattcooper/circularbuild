@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AuthWall from "@/component/AuthWall";
@@ -22,6 +23,12 @@ type Listing = {
   lat: number | null;
   lng: number | null;
   created_at: string;
+  owner?: {
+    id: string;
+    name: string | null;
+    avatar_url: string | null;
+    bio: string | null;
+  } | null;
 };
 
 export default function ListingDetail() {
@@ -38,7 +45,9 @@ export default function ListingDetail() {
     (async () => {
       const { data, error } = await supabase
         .from("listings")
-        .select("*")
+        .select(
+          "*, owner:profiles(id,name,avatar_url,bio)",
+        )
         .eq("id", params.id)
         .single();
       if (error) {
@@ -155,50 +164,95 @@ export default function ListingDetail() {
     return <main className="p-6">Listing not found.</main>;
   }
 
-  return (
-    <main className="max-w-3xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-2">{l.title}</h1>
+  const owner = l.owner;
 
-      {l.photos && l.photos.length > 0 && (
-        <Image
-          src={l.photos[0]}
-          alt={l.title}
-          width={1024}
-          height={512}
-          sizes="(max-width: 768px) 100vw, 960px"
-          className="mb-4 h-64 w-full rounded-lg object-cover"
-        />
+  return (
+    <main className="mx-auto max-w-4xl space-y-8 px-4 py-10 text-white">
+      <section className="rounded-3xl border border-white/15 bg-white/10 px-6 py-6 shadow-lg backdrop-blur-lg">
+        <h1 className="text-2xl font-bold text-white">{l.title}</h1>
+
+        {l.photos && l.photos.length > 0 && (
+          <Image
+            src={l.photos[0]}
+            alt={l.title}
+            width={1024}
+            height={512}
+            sizes="(max-width: 768px) 100vw, 960px"
+            className="mt-4 h-64 w-full rounded-2xl object-cover"
+          />
+        )}
+
+        <div className="mt-4 text-sm text-emerald-100/90">
+          {l.type} • {l.shape} • {l.count} pcs
+        </div>
+        <div className="text-xs text-emerald-100/70">
+          Available until {l.available_until} • {l.location_text}
+        </div>
+        <p className="mt-4 text-sm leading-6 text-emerald-100/90">{l.description}</p>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-400"
+            onClick={contact}
+          >
+            Contact lister
+          </button>
+          <button
+            type="button"
+            className={`inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition ${
+              saved
+                ? "border border-emerald-300/60 bg-emerald-500/10 text-emerald-200"
+                : "border border-white/20 bg-white/10 text-emerald-100/80 hover:border-white hover:text-white"
+            }`}
+            onClick={toggleWishlist}
+          >
+            {saved ? "Saved to wishlist" : "Save to wishlist"}
+          </button>
+        </div>
+      </section>
+
+      {owner && (
+        <section className="rounded-3xl border border-white/15 bg-white/10 px-6 py-6 shadow-lg backdrop-blur-lg">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="overflow-hidden rounded-full border border-white/30 bg-white/10">
+                {owner.avatar_url ? (
+                  <Image
+                    src={owner.avatar_url}
+                    alt={owner.name ?? "Donor avatar"}
+                    width={72}
+                    height={72}
+                    className="h-16 w-16 object-cover"
+                  />
+                ) : (
+                  <div className="grid h-16 w-16 place-items-center text-xs text-emerald-100/70">
+                    No photo
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-emerald-100/70">Listed by</p>
+                <Link
+                  href={`/profile/${owner.id}`}
+                  className="text-lg font-semibold text-white underline-offset-4 hover:underline"
+                >
+                  {owner.name ?? "CircularBuild member"}
+                </Link>
+              </div>
+            </div>
+            <div className="max-w-xl text-sm text-emerald-100/80">
+              {owner.bio ? owner.bio : "This donor hasn’t added a bio yet."}
+            </div>
+          </div>
+        </section>
       )}
 
-      <div className="text-sm text-gray-600 mb-2">
-        {l.type} • {l.shape} • {l.count} pcs
-      </div>
-      <div className="text-xs text-gray-500 mb-4">
-        Available until {l.available_until} • {l.location_text}
-      </div>
-      <p className="mb-4">{l.description}</p>
-
-      <button
-        type="button"
-        className="px-4 py-2 rounded-lg bg-blue-600 text-white"
-        onClick={contact}
-      >
-        Contact lister
-      </button>
-
-      <button
-        type="button"
-        className={`ml-3 px-4 py-2 rounded-lg border ${
-          saved
-            ? "border-emerald-500 text-emerald-600"
-            : "border-gray-300 text-gray-700"
-        }`}
-        onClick={toggleWishlist}
-      >
-        {saved ? "Saved to wishlist" : "Save to wishlist"}
-      </button>
-
-      {msg && <div className="mt-3 text-sm text-red-600">{msg}</div>}
+      {msg && (
+        <div className="rounded-3xl border border-rose-200/40 bg-rose-500/20 px-4 py-3 text-sm text-rose-100 shadow-lg backdrop-blur-lg">
+          {msg}
+        </div>
+      )}
     </main>
   );
 }
