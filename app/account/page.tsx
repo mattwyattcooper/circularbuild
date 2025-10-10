@@ -85,34 +85,37 @@ export default function AccountSettingsPage() {
   async function updateProfile() {
     setMsg("");
     try {
-      const { data: sess } = await supabase.auth.getSession();
-      const uid = sess.session?.user.id;
-      if (!uid) throw new Error("Session expired.");
       const trimmed = name.trim();
       const ageValue = age.trim() ? Number.parseInt(age, 10) : null;
       const safeAge = Number.isNaN(ageValue ?? NaN) ? null : ageValue;
-      const { error } = await supabase
-        .from("profiles")
-        .upsert({
-          id: uid,
-          name: trimmed || null,
-          gender: gender.trim() || null,
+      const genderTrimmed = gender.trim();
+      const interestsTrimmed = interests.trim();
+      const bioTrimmed = bio.trim();
+      const response = await fetch("/api/profile/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: trimmed,
+          gender: genderTrimmed,
           age: safeAge,
-          interests: interests.trim() || null,
-          bio: bio.trim() || null,
-          avatar_url: avatarUrl,
-        })
-        .eq("id", uid);
-      if (error) throw error;
+          interests: interestsTrimmed,
+          bio: bioTrimmed,
+          avatarUrl,
+        }),
+      });
+      const data = (await response.json()) as { error?: string } | undefined;
+      if (!response.ok) {
+        throw new Error(data?.error || "Profile update failed");
+      }
       setProfile((prev) =>
         prev
           ? {
               ...prev,
               name: trimmed || null,
-              gender: gender.trim() || null,
+              gender: genderTrimmed || null,
               age: safeAge,
-              interests: interests.trim() || null,
-              bio: bio.trim() || null,
+              interests: interestsTrimmed || null,
+              bio: bioTrimmed || null,
               avatar_url: avatarUrl,
             }
           : prev,
