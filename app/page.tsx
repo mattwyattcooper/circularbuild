@@ -1,6 +1,7 @@
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { createClient } from "@supabase/supabase-js";
 
 import HeroSection from "@/component/HeroSection";
 import ListingCard, { type ListingCardData } from "@/component/ListingCard";
@@ -100,7 +101,7 @@ export default async function Home() {
   const { data: listings } = await supabase
     .from("listings")
     .select(
-      "id, title, type, shape, location_text, available_until, photos, owner:profiles(id,name,avatar_url)",
+      "id, owner_id, title, type, shape, location_text, available_until, photos",
     )
     .eq("status", "active")
     .order("created_at", { ascending: true })
@@ -112,6 +113,38 @@ export default async function Home() {
     .order("created_at", { ascending: false })
     .limit(2);
 
+  let owners: Record<string, { id: string; name: string | null; avatar_url: string | null }> = {};
+
+  const ownerIds = Array.from(
+    new Set(
+      (listings ?? [])
+        .map((listing) => listing.owner_id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    ),
+  );
+
+  if (ownerIds.length > 0) {
+    const serviceUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (serviceUrl && serviceRoleKey) {
+      const adminClient = createClient(serviceUrl, serviceRoleKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+      const { data: ownerRows } = await adminClient
+        .from("profiles")
+        .select("id,name,avatar_url")
+        .in("id", ownerIds);
+      owners = (ownerRows ?? []).reduce<typeof owners>((acc, row) => {
+        acc[row.id] = {
+          id: row.id,
+          name: row.name ?? null,
+          avatar_url: row.avatar_url ?? null,
+        };
+        return acc;
+      }, {});
+    }
+  }
+
   const cards: ListingCardData[] = (listings ?? []).map((listing) => ({
     id: listing.id,
     title: listing.title,
@@ -121,17 +154,13 @@ export default async function Home() {
     availableLabel: listing.available_until
       ? `Available until ${listing.available_until}`
       : undefined,
-    owner: (() => {
-      const owner = Array.isArray(listing.owner)
-        ? listing.owner[0]
-        : listing.owner;
-      if (!owner) return undefined;
-      return {
-        id: owner.id,
-        name: owner.name,
-        avatarUrl: owner.avatar_url,
-      };
-    })(),
+    owner: listing.owner_id && owners[listing.owner_id]
+      ? {
+          id: owners[listing.owner_id].id,
+          name: owners[listing.owner_id].name ?? undefined,
+          avatarUrl: owners[listing.owner_id].avatar_url ?? undefined,
+        }
+      : undefined,
   }));
 
   const hasLiveListings = cards.length > 0;
