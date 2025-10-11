@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 export default function Header() {
@@ -11,6 +11,7 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   const navItems: Array<{
     label: string;
@@ -44,6 +45,22 @@ export default function Header() {
       sub.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function handleClick(event: MouseEvent) {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+
+    window.addEventListener("mousedown", handleClick);
+    return () => {
+      window.removeEventListener("mousedown", handleClick);
+    };
+  }, [menuOpen]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
@@ -99,7 +116,7 @@ export default function Header() {
           })}
 
           {email ? (
-            <div className="relative">
+            <div className="relative" ref={menuRef}>
               <button
                 type="button"
                 onClick={() => setMenuOpen((prev) => !prev)}

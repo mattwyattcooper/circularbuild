@@ -33,7 +33,7 @@ export default function ParallaxSection({
   const backgroundRef = useParallax({ speed, maxOffset });
 
   const flushClasses = flush
-    ? "first:mt-0 -mt-12 sm:-mt-14 lg:-mt-16"
+    ? "[&:not(:first-child)]:-mt-12 sm:[&:not(:first-child)]:-mt-16 lg:[&:not(:first-child)]:-mt-20"
     : "";
 
   const combinedClassName = [
