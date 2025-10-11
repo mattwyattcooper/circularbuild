@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
         { status: 500 },
       );
     }
-    const supa = createClient(url, serviceRoleKey ?? anonKey, {
+    const supa = createClient(url, anonKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
@@ -61,11 +61,9 @@ export async function POST(req: NextRequest) {
     }
 
     // 2) Pull all active listings (MVP; we’ll refine with SQL later)
-    const { data, error } = await supa
+    const { data: listings, error } = await supa
       .from("listings")
-      .select(
-        "*, owner:profiles(id,name,avatar_url,bio)",
-      )
+      .select("*")
       .eq("status", "active")
       .order("created_at", { ascending: false });
 
@@ -73,7 +71,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    let results = data ?? [];
+    let results = listings ?? [];
 
     // 3) Text filter
     if (q && typeof q === "string") {
@@ -101,7 +99,53 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ results });
+    const ownerIds = Array.from(
+      new Set(
+        results
+          .map((listing) => listing.owner_id)
+          .filter((value): value is string => typeof value === "string"),
+      ),
+    );
+
+    let owners: Record<
+      string,
+      { id: string; name: string | null; avatar_url: string | null; bio: string | null }
+    > = {};
+
+    if (ownerIds.length > 0) {
+      try {
+        const profileClient = createClient(url, serviceRoleKey ?? anonKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+          },
+        });
+        const { data: profileData } = await profileClient
+          .from("profiles")
+          .select("id,name,avatar_url,bio")
+          .in("id", ownerIds);
+        if (profileData) {
+          owners = profileData.reduce<typeof owners>((acc, profile) => {
+            acc[profile.id] = {
+              id: profile.id,
+              name: profile.name ?? null,
+              avatar_url: profile.avatar_url ?? null,
+              bio: profile.bio ?? null,
+            };
+            return acc;
+          }, {});
+        }
+      } catch (profileError) {
+        console.error("Profile lookup failed", profileError);
+      }
+    }
+
+    const enrichedResults = results.map((listing) => ({
+      ...listing,
+      owner: listing.owner_id ? owners[listing.owner_id] ?? null : null,
+    }));
+
+    return NextResponse.json({ results: enrichedResults });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Search failed";
     return NextResponse.json({ error: message }, { status: 500 });
