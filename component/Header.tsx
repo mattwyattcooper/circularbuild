@@ -20,11 +20,10 @@ export default function Header() {
   }> = [
     { label: "Who We Are", href: "/who-we-are" },
     { label: "Search", href: "/search" },
-    { label: "Donate", href: "/donate", requiresAuth: true },
+    { label: "Donate", href: "/donate" },
     {
       label: "Chats",
       href: "/chats",
-      requiresAuth: true,
       match: (cur) => cur.startsWith("/chats"),
     },
     { label: "News", href: "/news" },
