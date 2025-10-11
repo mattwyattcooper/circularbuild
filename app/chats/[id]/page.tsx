@@ -138,12 +138,20 @@ export default function ChatPage() {
       }
       if (!body.trim()) return;
 
-      const { error } = await supabase.from("messages").insert({
-        chat_id: String(chatId),
-        sender_id: sess.session.user.id,
-        body: body.trim(),
-      });
+      const { data, error } = await supabase
+        .from("messages")
+        .insert({
+          chat_id: String(chatId),
+          sender_id: sess.session.user.id,
+          body: body.trim(),
+        })
+        .select("*")
+        .single();
       if (error) throw error;
+      if (data) {
+        setMessages((prev) => [...prev, data as Message]);
+        setTimeout(scrollToBottom, 0);
+      }
       setBody("");
     } catch (error) {
       console.error(error);
