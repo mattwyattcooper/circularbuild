@@ -337,6 +337,12 @@ export default function ChatPage() {
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 placeholder={closed ? "Chat closed" : "Type your message..."}
+                onKeyDown={async (event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    await sendMessage();
+                  }
+                }}
                 disabled={closed}
               />
               <button
