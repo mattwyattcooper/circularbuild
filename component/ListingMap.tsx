@@ -21,6 +21,7 @@ type Props = {
   }>;
   radius: number;
   origin: { lat: number; lng: number } | null;
+  onListingSelect?: (id: string) => void;
 };
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -63,7 +64,12 @@ function makeRadiusPolygon(
   };
 }
 
-export default function ListingMap({ listings, origin, radius }: Props) {
+export default function ListingMap({
+  listings,
+  origin,
+  radius,
+  onListingSelect,
+}: Props) {
   const pins: ListingPin[] = listings
     .filter((l) => typeof l.lat === "number" && typeof l.lng === "number")
     .map((l) => ({
@@ -134,9 +140,13 @@ export default function ListingMap({ listings, origin, radius }: Props) {
           latitude={pin.lat}
           anchor="bottom"
         >
-          <div className="rounded-full bg-blue-600 px-2 py-1 text-xs text-white">
+          <button
+            type="button"
+            onClick={() => onListingSelect?.(pin.id)}
+            className="rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white shadow transition hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
             {pin.type}
-          </div>
+          </button>
         </Marker>
       ))}
     </MapGL>

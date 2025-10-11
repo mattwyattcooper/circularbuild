@@ -272,218 +272,247 @@ export default function SearchPage() {
           </div>
         </div>
       )}
-      <main className="mx-auto max-w-6xl p-6 text-slate-900">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold text-emerald-700">
-              Search for donations
-            </h1>
-            <p className="text-sm text-gray-600">
-              Explore surplus materials shared by vetted contractors and
-              homeowners. Filter by the specifications you need or switch to the
-              map view to scan nearby opportunities.
-            </p>
+      <main className="flex flex-col text-white">
+        <section className="relative isolate overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950">
+          <div className="pointer-events-none absolute inset-0 opacity-35" aria-hidden>
+            <div className="h-full w-full bg-[radial-gradient(circle_at_top_right,_rgba(74,222,128,0.35),_transparent_60%)]" />
           </div>
-          <div className="flex items-center gap-2 self-start rounded-full border border-gray-200 bg-white p-1">
-            <button
-              type="button"
-              className={`rounded-full px-4 py-1 text-sm ${
-                viewMode === "list"
-                  ? "bg-emerald-600 text-white"
-                  : "text-slate-600 hover:text-emerald-600"
-              }`}
-              onClick={() => setViewMode("list")}
-            >
-              List view
-            </button>
-            <button
-              type="button"
-              className={`rounded-full px-4 py-1 text-sm ${
-                viewMode === "map"
-                  ? "bg-emerald-600 text-white"
-                  : "text-slate-600 hover:text-emerald-600"
-              }`}
-              onClick={() => setViewMode("map")}
-            >
-              Map view
-            </button>
-          </div>
-        </div>
-
-        {!isAuthenticated && (
-          <div className="rounded-lg border border-gray-200 bg-emerald-50 px-4 py-3 text-sm text-slate-700">
-            Preview materials before you join. Create an account to save
-            listings, chat with donors, and arrange pickups.
-          </div>
-        )}
-
-        <div className="mt-6 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-5">
-          <label className="flex flex-col gap-1 md:col-span-2">
-            <span className="text-sm font-medium">Keywords</span>
-            <input
-              className="rounded-lg border px-3 py-2"
-              placeholder="Search by title, shape, description"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-          </label>
-
-          <label className="flex flex-col gap-1">
-            <span className="text-sm font-medium">Material</span>
-            <select
-              className="rounded-lg border px-3 py-2"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-            >
-              {MATERIALS.map((m) => (
-                <option key={m} value={m}>
-                  {m === "" ? "All materials" : m}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex flex-col gap-1">
-            <span className="text-sm font-medium">Address or ZIP</span>
-            <input
-              className="rounded-lg border px-3 py-2"
-              placeholder="Type an address to focus results"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-            />
-          </label>
-
-          <label className="flex flex-col gap-1">
-            <span className="text-sm font-medium">Radius (miles)</span>
-            <input
-              type="number"
-              min={1}
-              placeholder="25"
-              className="rounded-lg border px-3 py-2"
-              value={radius}
-              onChange={(e) => setRadius(e.target.value)}
-            />
-          </label>
-
-          <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              className="rounded-lg border px-3 py-2 text-sm"
-              onClick={handleUseCurrentLocation}
-            >
-              Use my location
-            </button>
-            <button
-              type="button"
-              className="rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white transition hover:bg-emerald-700 disabled:opacity-60"
-              onClick={() => fetchListings()}
-              disabled={loading}
-            >
-              {loading ? "Searching…" : "Apply filters"}
-            </button>
-          </div>
-        </div>
-
-        {locStatus && (
-          <div className="mt-2 text-xs text-gray-600">{locStatus}</div>
-        )}
-        {msg && <div className="mt-4 text-sm">{msg}</div>}
-        {wishlistMsg && (
-          <div className="mt-2 text-xs text-red-600">{wishlistMsg}</div>
-        )}
-
-        {viewMode === "map" ? (
-          <div className="mt-6 h-[480px] overflow-hidden rounded-2xl border border-gray-200">
-            <ListingMap listings={items} radius={radiusMiles} origin={origin} />
-          </div>
-        ) : (
-          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {items.map((l) => {
-              const saved = wishlistIds.has(l.id);
-              const owner = Array.isArray(l.owner) ? l.owner[0] : l.owner;
-              return (
-                <div
-                  key={l.id}
-                  className="rounded-xl border border-gray-200 bg-white p-4"
-                >
-                  {Array.isArray(l.photos) && l.photos[0] ? (
-                    <Image
-                      src={l.photos[0]}
-                      alt={l.title}
-                      width={400}
-                      height={320}
-                      sizes="(max-width: 768px) 100vw, 400px"
-                      className="mb-3 h-40 w-full rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="mb-3 grid h-40 w-full place-items-center rounded-lg bg-gray-100 text-sm text-gray-500">
-                      No photo
-                    </div>
-                  )}
-                  <div className="font-semibold">{l.title}</div>
-                  <div className="text-sm text-gray-600">
-                    {l.type} • {l.shape} • {l.count} pcs
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Avail. until {l.available_until} • {l.location_text}
-                  </div>
-                  {owner && (
-                    <Link
-                      href={`/profile/${owner.id}`}
-                      className="mt-3 flex items-center gap-3 rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-sm text-emerald-700 transition hover:border-emerald-200 hover:bg-emerald-100"
-                    >
-                      <div className="h-9 w-9 overflow-hidden rounded-full border border-emerald-200 bg-white">
-                        {owner.avatar_url ? (
-                          <Image
-                            src={owner.avatar_url}
-                            alt={owner.name ?? "Profile avatar"}
-                            width={36}
-                            height={36}
-                            className="h-9 w-9 object-cover"
-                          />
-                        ) : (
-                          <div className="grid h-9 w-9 place-items-center text-[10px] text-emerald-500">
-                            {owner.name ? owner.name[0]?.toUpperCase() : "?"}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-semibold">
-                          {owner.name ?? "CircularBuild member"}
-                        </span>
-                        {owner.bio && (
-                          <span className="text-xs text-emerald-600">
-                            {owner.bio}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                  )}
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className="rounded-lg bg-gray-900 px-3 py-2 text-white transition hover:bg-gray-800"
-                      onClick={() => handleViewListing(l.id)}
-                    >
-                      View listing
-                    </button>
-                    <button
-                      type="button"
-                      className={`rounded-lg px-3 py-2 text-sm ${
-                        saved
-                          ? "border border-emerald-500 text-emerald-600"
-                          : "border border-gray-200 text-gray-600"
-                      }`}
-                      onClick={() => toggleWishlist(l.id)}
-                    >
-                      {saved ? "Saved" : "Save"}
-                    </button>
-                  </div>
+          <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-14 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+            <div className="flex-1 space-y-5">
+              <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
+                Marketplace search
+              </span>
+              <h1 className="text-[clamp(2.4rem,4vw,3.8rem)] font-extrabold leading-tight">
+                Discover surplus materials ready for reuse.
+              </h1>
+              <p className="max-w-xl text-sm text-emerald-100/85 sm:text-base">
+                Filter by specs, scout the map, and connect with donors across the network. Listings update in real time as crews share what&apos;s available.
+              </p>
+              {!isAuthenticated && (
+                <div className="rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-emerald-100/90 backdrop-blur">
+                  Preview what&apos;s live, then create an account to save materials and coordinate pickups.
                 </div>
-              );
-            })}
+              )}
+            </div>
+            <div className="w-full max-w-xl rounded-3xl border border-white/15 bg-white/10 p-6 shadow-xl backdrop-blur">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-200">
+                  Filters
+                </p>
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 p-1 text-xs">
+                  <button
+                    type="button"
+                    className={`rounded-full px-3 py-1 font-semibold transition ${
+                      viewMode === "list"
+                        ? "bg-emerald-500 text-white"
+                        : "text-emerald-100/80 hover:text-white"
+                    }`}
+                    onClick={() => setViewMode("list")}
+                  >
+                    List
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded-full px-3 py-1 font-semibold transition ${
+                      viewMode === "map"
+                        ? "bg-emerald-500 text-white"
+                        : "text-emerald-100/80 hover:text-white"
+                    }`}
+                    onClick={() => setViewMode("map")}
+                  >
+                    Map
+                  </button>
+                </div>
+              </div>
+              <div className="mt-5 grid grid-cols-1 gap-4">
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                    Keywords
+                  </span>
+                  <input
+                    className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    placeholder="Search by title, description, or shape"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                  />
+                </label>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                      Material
+                    </span>
+                    <select
+                      className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                      value={type}
+                      onChange={(e) => setType(e.target.value)}
+                    >
+                      {MATERIALS.map((m) => (
+                        <option key={m} value={m}>
+                          {m === "" ? "All materials" : m}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                      Radius (miles)
+                    </span>
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="25"
+                      className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                      value={radius}
+                      onChange={(e) => setRadius(e.target.value)}
+                    />
+                  </label>
+                </div>
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                    Focus results near
+                  </span>
+                  <input
+                    className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    placeholder="Address or ZIP"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                  />
+                </label>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    className="rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-emerald-100/90 transition hover:border-white hover:text-white"
+                    onClick={handleUseCurrentLocation}
+                  >
+                    Use my location
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-400 disabled:opacity-60"
+                    onClick={() => fetchListings()}
+                    disabled={loading}
+                  >
+                    {loading ? "Searching…" : "Apply filters"}
+                  </button>
+                </div>
+                {locStatus && (
+                  <div className="text-xs text-emerald-100/70">{locStatus}</div>
+                )}
+                {msg && <div className="text-sm text-emerald-100">{msg}</div>}
+                {wishlistMsg && (
+                  <div className="text-xs text-rose-200">{wishlistMsg}</div>
+                )}
+              </div>
+            </div>
           </div>
-        )}
+        </section>
+
+        <section className="relative isolate overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950">
+          <div className="pointer-events-none absolute inset-0 opacity-25" aria-hidden>
+            <div className="h-full w-full bg-[radial-gradient(circle_at_bottom_left,_rgba(52,211,153,0.3),_transparent_60%)]" />
+          </div>
+          <div className="relative mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
+            {viewMode === "map" ? (
+              <div className="h-[520px] overflow-hidden rounded-3xl border border-white/15 bg-white/10 shadow-xl backdrop-blur">
+                <ListingMap
+                  listings={items}
+                  radius={radiusMiles}
+                  origin={origin}
+                  onListingSelect={handleViewListing}
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {items.map((l) => {
+                  const saved = wishlistIds.has(l.id);
+                  const owner = Array.isArray(l.owner) ? l.owner[0] : l.owner;
+                  return (
+                    <div
+                      key={l.id}
+                      className="group flex h-full flex-col overflow-hidden rounded-3xl border border-white/15 bg-white/10 p-5 text-emerald-100/85 shadow-lg backdrop-blur transition hover:-translate-y-1 hover:border-white"
+                    >
+                      {Array.isArray(l.photos) && l.photos[0] ? (
+                        <Image
+                          src={l.photos[0]}
+                          alt={l.title}
+                          width={400}
+                          height={320}
+                          sizes="(max-width: 768px) 100vw, 400px"
+                          className="mb-4 h-44 w-full rounded-2xl object-cover"
+                        />
+                      ) : (
+                        <div className="mb-4 grid h-44 w-full place-items-center rounded-2xl border border-white/15 bg-white/10 text-sm text-emerald-100/60">
+                          Photo coming soon
+                        </div>
+                      )}
+                      <div className="space-y-1">
+                        <h2 className="text-lg font-semibold text-white">
+                          {l.title}
+                        </h2>
+                        <p className="text-sm text-emerald-100/80">
+                          {l.type} • {l.shape} • {l.count} pcs
+                        </p>
+                        <p className="text-xs text-emerald-100/70">
+                          Available until {l.available_until} • {l.location_text}
+                        </p>
+                      </div>
+                      {owner && (
+                        <Link
+                          href={`/profile/${owner.id}`}
+                          className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white transition hover:border-white"
+                        >
+                          <div className="h-9 w-9 overflow-hidden rounded-full border border-white/20 bg-white/10">
+                            {owner.avatar_url ? (
+                              <Image
+                                src={owner.avatar_url}
+                                alt={owner.name ?? "Profile avatar"}
+                                width={36}
+                                height={36}
+                                className="h-9 w-9 object-cover"
+                              />
+                            ) : (
+                              <div className="grid h-9 w-9 place-items-center text-[10px] text-emerald-100/80">
+                                {owner.name ? owner.name[0]?.toUpperCase() : "?"}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col">
+                            <span>{owner.name ?? "CircularBuild member"}</span>
+                            {owner.bio && (
+                              <span className="text-xs text-emerald-100/70">
+                                {owner.bio}
+                              </span>
+                            )}
+                          </div>
+                        </Link>
+                      )}
+                      <div className="mt-auto flex flex-wrap gap-3 pt-4">
+                        <button
+                          type="button"
+                          className="rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-400"
+                          onClick={() => handleViewListing(l.id)}
+                        >
+                          View listing
+                        </button>
+                        <button
+                          type="button"
+                          className={`rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
+                            saved
+                              ? "border-emerald-300/60 text-emerald-200"
+                              : "border-white/20 text-emerald-100/80 hover:border-white hover:text-white"
+                          }`}
+                          onClick={() => toggleWishlist(l.id)}
+                        >
+                          {saved ? "Saved" : "Save"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
       </main>
     </>
   );

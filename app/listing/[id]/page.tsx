@@ -4,9 +4,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
 import AuthWall from "@/component/AuthWall";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { supabase } from "../../../lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
+
+type ListingOwner = {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+} | null;
 
 type Listing = {
   id: string;
@@ -23,20 +31,7 @@ type Listing = {
   lat: number | null;
   lng: number | null;
   created_at: string;
-  owner?:
-    | {
-        id: string;
-        name: string | null;
-        avatar_url: string | null;
-        bio: string | null;
-      }
-    | Array<{
-        id: string;
-        name: string | null;
-        avatar_url: string | null;
-        bio: string | null;
-      }>
-    | null;
+  owner?: ListingOwner;
 };
 
 export default function ListingDetail() {
@@ -50,18 +45,22 @@ export default function ListingDetail() {
 
   useEffect(() => {
     if (authStatus !== "authenticated" || !params?.id) return;
+    let active = true;
+    setLoading(true);
+    setMsg("");
     (async () => {
-      const { data, error } = await supabase
-        .from("listings")
-        .select(
-          "*, owner:profiles(id,name,avatar_url,bio)",
-        )
-        .eq("id", params.id)
-        .single();
-      if (error) {
-        setMsg(`Error loading listing: ${error.message}`);
-      } else {
-        setL(data);
+      try {
+        const res = await fetch(`/api/listings/${params.id}`);
+        const payload = (await res.json()) as { listing?: Listing; error?: string };
+        if (!res.ok || !payload.listing) {
+          if (!active) return;
+          setMsg(`Error loading listing: ${payload.error ?? res.statusText}`);
+          setL(null);
+          return;
+        }
+        if (!active) return;
+        setL(payload.listing);
+
         const { data: sess } = await supabase.auth.getSession();
         const uid = sess.session?.user.id;
         if (uid) {
@@ -71,11 +70,25 @@ export default function ListingDetail() {
             .eq("user_id", uid)
             .eq("listing_id", params.id)
             .maybeSingle();
+          if (!active) return;
           setSaved(Boolean(wish));
+        } else {
+          setSaved(false);
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unable to load listing";
+        if (!active) return;
+        setMsg(`Error loading listing: ${message}`);
+      } finally {
+        if (active) {
+          setLoading(false);
         }
       }
-      setLoading(false);
     })();
+    return () => {
+      active = false;
+    };
   }, [authStatus, params?.id]);
 
   async function contact() {
@@ -172,7 +185,7 @@ export default function ListingDetail() {
     return <main className="p-6">Listing not found.</main>;
   }
 
-  const owner = Array.isArray(l.owner) ? l.owner[0] : l.owner;
+  const owner: ListingOwner = l.owner ?? null;
 
   return (
     <main className="mx-auto max-w-4xl space-y-8 px-4 py-10 text-white">
