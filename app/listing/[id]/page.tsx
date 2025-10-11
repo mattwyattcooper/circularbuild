@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
+import { cleanListingDescription } from "@/lib/cleanListingDescription";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -187,6 +188,8 @@ export default function ListingDetail() {
 
   const owner: ListingOwner = l.owner ?? null;
 
+  const visibleDescription = cleanListingDescription(l.description);
+
   return (
     <main className="mx-auto max-w-4xl space-y-8 px-4 py-10 text-white">
       <section className="rounded-3xl border border-white/15 bg-white/10 px-6 py-6 shadow-lg backdrop-blur-lg">
@@ -209,7 +212,9 @@ export default function ListingDetail() {
         <div className="text-xs text-emerald-100/70">
           Available until {l.available_until} • {l.location_text}
         </div>
-        <p className="mt-4 text-sm leading-6 text-emerald-100/90">{l.description}</p>
+        <p className="mt-4 text-sm leading-6 text-emerald-100/90">
+          {visibleDescription || "No additional description provided."}
+        </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
           <button
