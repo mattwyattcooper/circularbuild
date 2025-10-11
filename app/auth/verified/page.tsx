@@ -65,7 +65,7 @@ export default function EmailVerifiedPage() {
           </button>
         </div>
         <p className="text-xs text-emerald-100/60">
-          Need help? Email <a href="mailto:contact@circularbuild.org" className="underline">contact@circularbuild.org</a>.
+          Need help? Contact us via our <a href="/contact" className="underline">Contact page</a>.
         </p>
       </div>
     </main>
