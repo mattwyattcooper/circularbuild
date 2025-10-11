@@ -21,37 +21,24 @@ function AuthPageInner() {
   async function handleSubmit() {
     setMsg("");
     try {
-      const baseUrl = (
-        process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
-      ).replace(/\/$/, "");
-      const redirectSuffix =
-        nextPath !== "/" ? `?next=${encodeURIComponent(nextPath)}` : "";
-      const emailRedirectTo = `${baseUrl}/auth${redirectSuffix}`;
-
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo,
-            data: name.trim() ? { full_name: name.trim() } : undefined,
-          },
+        const response = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            password,
+            name,
+            nextPath,
+          }),
         });
-        if (error) throw error;
-        const user = data.user;
-        if (user) {
-          try {
-            await fetch("/api/profile/init", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ id: user.id, name }),
-            });
-          } catch (profileError) {
-            console.error("Profile init failed", profileError);
-          }
+        const data = (await response.json()) as { error?: string; message?: string };
+        if (!response.ok) {
+          throw new Error(data?.error || "Sign up failed.");
         }
         setMsg(
-          `Check ${email} for a confirmation link. Once verified, sign in to continue.`,
+          data?.message ||
+            `Check ${email} for a confirmation link. Once verified, sign in to continue.`,
         );
         setMode("signin");
       } else {
