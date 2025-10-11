@@ -174,7 +174,7 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
               title="Sign in required"
               message="Sign in to donate materials through CircularBuild."
               nextPath="/donate"
-              secondaryHref="/donate"
+              secondaryHref="/"
             />
           </div>
         </div>

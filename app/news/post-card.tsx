@@ -56,7 +56,9 @@ export default function PostCard({
               title="Sign in required"
               message="Sign in to read the full briefing and coordinate with donors."
               nextPath={`/news/${post.id}`}
-              secondaryHref="/news"
+              secondaryHref="/"
+              onSecondaryClick={() => setShowAuthPrompt(false)}
+              onPrimaryClick={() => setShowAuthPrompt(false)}
             />
             <button
               type="button"

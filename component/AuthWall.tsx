@@ -5,6 +5,8 @@ type AuthWallProps = {
   message?: string;
   nextPath?: string;
   secondaryHref?: string;
+  onPrimaryClick?: () => void;
+  onSecondaryClick?: () => void;
 };
 
 export default function AuthWall({
@@ -12,6 +14,8 @@ export default function AuthWall({
   message = "Please sign in to access this feature.",
   nextPath,
   secondaryHref,
+  onPrimaryClick,
+  onSecondaryClick,
 }: AuthWallProps) {
   const signInHref = nextPath
     ? `/auth?next=${encodeURIComponent(nextPath)}`
@@ -27,12 +31,14 @@ export default function AuthWall({
           <Link
             href={signInHref}
             className="rounded-lg bg-emerald-600 px-4 py-2 text-white"
+            onClick={onPrimaryClick}
           >
             Go to sign in
           </Link>
           <Link
             href={secondaryLink}
             className="rounded-lg border border-emerald-600 px-4 py-2 text-emerald-700"
+            onClick={onSecondaryClick}
           >
             Back to home
           </Link>

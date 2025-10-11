@@ -260,7 +260,8 @@ export default function SearchPage() {
               title={authPrompt.title}
               message={authPrompt.message}
               nextPath={authPrompt.nextPath}
-              secondaryHref="/search"
+              secondaryHref="/"
+              onSecondaryClick={dismissAuthPrompt}
             />
             <button
               type="button"
