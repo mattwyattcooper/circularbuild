@@ -15,6 +15,7 @@ type Props = {
   maxOffset?: number;
   priority?: boolean;
   imageSizes?: string;
+  flush?: boolean;
 };
 
 export default function ParallaxSection({
@@ -27,11 +28,24 @@ export default function ParallaxSection({
   maxOffset = 160,
   priority = false,
   imageSizes = "100vw",
+  flush = false,
 }: Props) {
   const backgroundRef = useParallax({ speed, maxOffset });
 
+  const flushClasses = flush
+    ? "first:mt-0 -mt-12 sm:-mt-14 lg:-mt-16"
+    : "";
+
+  const combinedClassName = [
+    "relative isolate w-full overflow-hidden",
+    flushClasses,
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <section className={`relative isolate w-full overflow-hidden ${className}`}>
+    <section className={combinedClassName}>
       <div
         ref={backgroundRef}
         className="absolute inset-0 -z-10 will-change-transform"

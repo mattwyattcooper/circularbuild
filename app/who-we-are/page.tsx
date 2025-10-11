@@ -140,9 +140,9 @@ export default function WhoWeArePage() {
         imageSrc="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Volunteers sorting reclaimed construction materials"
         overlayClassName="bg-slate-950/65"
-        className="mt-[-1px]"
         speed={0.26}
         maxOffset={260}
+        flush
       >
         <div className="mx-auto flex min-h-[70vh] max-w-6xl flex-col gap-12 px-4 py-12 sm:px-6 md:py-16 lg:flex-row lg:items-center lg:px-8">
           <div className="flex-1 space-y-6">
@@ -210,9 +210,9 @@ export default function WhoWeArePage() {
         imageSrc="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Stacked reclaimed materials ready for distribution"
         overlayClassName="bg-emerald-950/65"
-        className="mt-[-1px]"
         speed={0.24}
         maxOffset={220}
+        flush
       >
         <div className="mx-auto flex min-h-[60vh] max-w-6xl flex-col justify-center gap-8 px-4 py-12 sm:px-6 md:py-16 lg:px-8">
           <div className="space-y-4">
@@ -244,9 +244,9 @@ export default function WhoWeArePage() {
         imageSrc="https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Stacks of reclaimed beams inside a warehouse"
         overlayClassName="bg-emerald-950/65"
-        className="mt-[-1px]"
         speed={0.26}
         maxOffset={220}
+        flush
       >
         <div className="mx-auto flex min-h-[60vh] max-w-6xl flex-col justify-center gap-10 px-4 py-12 sm:px-6 md:py-16 lg:px-8">
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -272,9 +272,9 @@ export default function WhoWeArePage() {
         imageSrc="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Team collaborating on reused construction materials"
         overlayClassName="bg-slate-950/65"
-        className="mt-[-1px]"
         speed={0.25}
         maxOffset={240}
+        flush
       >
         <div className="mx-auto flex min-h-[70vh] max-w-6xl flex-col justify-center gap-12 px-4 py-14 sm:px-6 md:py-18 lg:px-8">
           <div className="max-w-4xl space-y-12">
@@ -296,9 +296,9 @@ export default function WhoWeArePage() {
         imageSrc="https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Sunlight over reclaimed building materials"
         overlayClassName="bg-emerald-950/70"
-        className="mt-[-1px]"
         speed={0.24}
         maxOffset={220}
+        flush
       >
         <div className="mx-auto flex min-h-[60vh] max-w-6xl flex-col justify-center gap-10 px-4 py-12 sm:px-6 md:py-16 lg:px-8">
           <div className="max-w-5xl space-y-8">
@@ -341,9 +341,9 @@ export default function WhoWeArePage() {
         imageSrc="https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Architects reviewing plans on a job site"
         overlayClassName="bg-slate-950/65"
-        className="mt-[-1px]"
         speed={0.24}
         maxOffset={220}
+        flush
       >
         <div className="mx-auto flex min-h-[60vh] max-w-6xl flex-col justify-center gap-8 px-4 py-12 sm:px-6 md:py-16 lg:px-8">
           <div className="space-y-4">
@@ -367,12 +367,12 @@ export default function WhoWeArePage() {
       </ParallaxSection>
 
       <ParallaxSection
-        imageSrc="https://images.unsplash.com/photo-1529429617124-aee1e6a1a32d?auto=format&fit=crop&w=2400&q=80"
+        imageSrc="https://images.unsplash.com/photo-1529429617124-aee1e6a1a32d?auto=format&fit=crop&w=1600&q=80"
         imageAlt="Community members celebrating a completed build"
         overlayClassName="bg-emerald-950/65"
-        className="mt-[-1px]"
         speed={0.18}
         maxOffset={200}
+        flush
       >
         <div className="mx-auto flex min-h-[50vh] max-w-6xl flex-col justify-center gap-6 px-4 py-12 sm:px-6 md:py-16 lg:px-8">
           <h2 className="text-[clamp(2rem,4vw,3rem)] font-semibold text-white">

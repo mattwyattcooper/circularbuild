@@ -71,7 +71,27 @@ const PLACEHOLDER_CARDS: ListingCardData[] = [
     location: "Join to view",
     availableLabel: "Availability shared after sign in",
   },
+  {
+    id: "placeholder-e",
+    title: "HVAC equipment bundle",
+    image: FALLBACK_IMAGE,
+    tags: ["Mechanical"],
+    location: "Join to view",
+    availableLabel: "Availability shared after sign in",
+  },
 ];
+
+function buildExcerpt(body: string, limit = 160) {
+  const plain = body
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`[^`]*`/g, "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[[^\]]*\]\(([^)]*)\)/g, "$1")
+    .replace(/[>#*_~`-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return plain.length > limit ? `${plain.slice(0, limit - 1)}…` : plain;
+}
 
 export default async function Home() {
   const cookieStore = cookies();
@@ -83,8 +103,14 @@ export default async function Home() {
       "id, title, type, shape, location_text, available_until, photos, owner:profiles(id,name,avatar_url)",
     )
     .eq("status", "active")
+    .order("created_at", { ascending: true })
+    .limit(5);
+
+  const { data: newsPosts } = await supabase
+    .from("news_posts")
+    .select("id, title, body, created_at")
     .order("created_at", { ascending: false })
-    .limit(4);
+    .limit(2);
 
   const cards: ListingCardData[] = (listings ?? []).map((listing) => ({
     id: listing.id,
@@ -109,6 +135,15 @@ export default async function Home() {
   }));
 
   const hasLiveListings = cards.length > 0;
+
+  const stories = (newsPosts ?? []).map((post) => ({
+    id: post.id,
+    title: post.title,
+    excerpt: buildExcerpt(post.body ?? ""),
+    createdAt: post.created_at,
+  }));
+
+  const hasStories = stories.length > 0;
 
   return (
     <main className="flex flex-col">
@@ -180,7 +215,7 @@ export default async function Home() {
               coordinate pickups.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
             {hasLiveListings
               ? cards.map((card) => (
                   <ListingCard key={card.id} listing={card} />
@@ -244,25 +279,60 @@ export default async function Home() {
             </Link>
           </div>
           <div className="grid gap-4">
-            <article className="rounded-2xl border border-white/30 bg-white/15 p-6 text-white shadow-lg backdrop-blur-xl">
-              <h3 className="text-lg font-semibold text-white">
-                Training center matches 4,500 sq ft of flooring within 48 hours.
-              </h3>
-              <p className="mt-3 text-sm text-emerald-50/90">
-                Verified pickup notes and auto-generated diversion metrics kept
-                40 students and nonprofit supervisors on schedule.
-              </p>
-            </article>
-            <article className="rounded-2xl border border-white/30 bg-white/15 p-6 text-white shadow-lg backdrop-blur-xl">
-              <h3 className="text-lg font-semibold text-white">
-                Deconstruction partner diverts 22 tons of structural timber in
-                one weekend.
-              </h3>
-              <p className="mt-3 text-sm text-emerald-50/90">
-                Logistics templates, QR code check-ins, and in-app messaging
-                streamlined the entire handoff.
-              </p>
-            </article>
+            {hasStories
+              ? stories.map((story) => (
+                  <article
+                    key={story.id}
+                    className="rounded-2xl border border-white/30 bg-white/15 p-6 text-white shadow-lg backdrop-blur-xl"
+                  >
+                    <h3 className="text-lg font-semibold text-white">
+                      {story.title}
+                    </h3>
+                    <p className="mt-3 text-sm text-emerald-50/90">
+                      {story.excerpt}
+                    </p>
+                    <Link
+                      href={`/news/${story.id}`}
+                      className="mt-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-200 underline underline-offset-4 hover:text-emerald-100"
+                    >
+                      Read briefing
+                      <span aria-hidden>→</span>
+                    </Link>
+                  </article>
+                ))
+              : [
+                  {
+                    id: "placeholder-story-1",
+                    title: "Circular donations shift project timelines",
+                    excerpt:
+                      "Stories from the field will appear here once new briefings are published.",
+                  },
+                  {
+                    id: "placeholder-story-2",
+                    title: "Track diversion impact in real time",
+                    excerpt:
+                      "Check back soon for highlights from donors and builders across the network.",
+                  },
+                ].map((story) => (
+                  <article
+                    key={story.id}
+                    className="rounded-2xl border border-white/30 bg-white/15 p-6 text-white shadow-lg backdrop-blur-xl"
+                  >
+                    <h3 className="text-lg font-semibold text-white">
+                      {story.title}
+                    </h3>
+                    <p className="mt-3 text-sm text-emerald-50/90">
+                      {story.excerpt}
+                    </p>
+                    <Link
+                      href="/news"
+                      className="mt-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-200 underline underline-offset-4 hover:text-emerald-100"
+                    >
+                      Visit the briefing room
+                      <span aria-hidden>→</span>
+                    </Link>
+                  </article>
+                ))}
           </div>
         </div>
       </ParallaxSection>
