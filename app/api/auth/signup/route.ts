@@ -34,6 +34,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!fullName) {
+      return NextResponse.json(
+        { error: "Please include your full name." },
+        { status: 400 },
+      );
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

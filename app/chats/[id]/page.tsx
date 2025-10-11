@@ -247,10 +247,18 @@ export default function ChatPage() {
                           className="h-12 w-12 object-cover"
                         />
                       ) : (
-                        <div className="grid h-12 w-12 place-items-center text-xs text-emerald-100/70">
-                          {buyerProfile.name
-                            ? buyerProfile.name[0]?.toUpperCase()
-                            : "?"}
+                        <div className="grid h-12 w-12 place-items-center text-emerald-100/70">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.25"
+                            className="h-8 w-8"
+                          >
+                            <circle cx="12" cy="8" r="4" />
+                            <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
+                          </svg>
                         </div>
                       )}
                     </div>
@@ -281,10 +289,18 @@ export default function ChatPage() {
                           className="h-12 w-12 object-cover"
                         />
                       ) : (
-                        <div className="grid h-12 w-12 place-items-center text-xs text-emerald-100/70">
-                          {sellerProfile.name
-                            ? sellerProfile.name[0]?.toUpperCase()
-                            : "?"}
+                        <div className="grid h-12 w-12 place-items-center text-emerald-100/70">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.25"
+                            className="h-8 w-8"
+                          >
+                            <circle cx="12" cy="8" r="4" />
+                            <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
+                          </svg>
                         </div>
                       )}
                     </div>

@@ -8,6 +8,8 @@ import { supabase } from "../lib/supabaseClient";
 
 export default function Header() {
   const [email, setEmail] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -35,16 +37,39 @@ export default function Header() {
   useEffect(() => {
     // Get current session
     supabase.auth.getSession().then(({ data }) => {
-      setEmail(data.session?.user.email ?? null);
+      const session = data.session;
+      setEmail(session?.user.email ?? null);
+      if (session?.user.id) {
+        void loadProfile(session.user.id);
+      } else {
+        setDisplayName(null);
+        setAvatarUrl(null);
+      }
     });
     // Listen for auth state changes (e.g. sign in / sign out)
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setEmail(session?.user?.email ?? null);
+      if (session?.user?.id) {
+        void loadProfile(session.user.id);
+      } else {
+        setDisplayName(null);
+        setAvatarUrl(null);
+      }
     });
     return () => {
       sub.subscription.unsubscribe();
     };
   }, []);
+
+  async function loadProfile(userId: string) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("name,avatar_url")
+      .eq("id", userId)
+      .maybeSingle();
+    setDisplayName(data?.name ?? null);
+    setAvatarUrl(data?.avatar_url ?? null);
+  }
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -120,9 +145,32 @@ export default function Header() {
               <button
                 type="button"
                 onClick={() => setMenuOpen((prev) => !prev)}
-                className="rounded-full bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none"
+                className="flex items-center gap-2 rounded-full bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none"
               >
-                {email}
+                <span className="relative h-7 w-7 overflow-hidden rounded-full border border-white/40 bg-white/20">
+                  {avatarUrl ? (
+                    <Image
+                      src={avatarUrl}
+                      alt={displayName ?? email ?? "Account avatar"}
+                      fill
+                      sizes="28px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.25"
+                      className="h-full w-full p-1 text-emerald-50"
+                    >
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
+                    </svg>
+                  )}
+                </span>
+                <span>{displayName ?? email}</span>
               </button>
               {menuOpen && (
                 <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-emerald-100 bg-white shadow-xl">

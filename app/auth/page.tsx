@@ -97,6 +97,7 @@ function AuthPageInner() {
                 placeholder="Full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                required
               />
             )}
             <input

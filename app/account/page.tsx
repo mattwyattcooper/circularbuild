@@ -240,9 +240,19 @@ export default function AccountSettingsPage() {
                       className="h-28 w-28 object-cover"
                     />
                   ) : (
-                    <div className="grid h-28 w-28 place-items-center text-sm text-emerald-100/70">
-                      No photo
-                    </div>
+                  <div className="grid h-28 w-28 place-items-center text-emerald-100/70">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="h-14 w-14"
+                    >
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
+                    </svg>
+                  </div>
                   )}
                 </div>
                 <label className="flex cursor-pointer items-center justify-center rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200 transition hover:border-white hover:text-white">
