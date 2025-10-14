@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+
 import { supabase } from "../lib/supabaseClient";
 
 export default function Header() {
@@ -11,9 +13,11 @@ export default function Header() {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hasUnreadChats, setHasUnreadChats] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const unreadChannelRef = useRef<RealtimeChannel | null>(null);
 
   const navItems: Array<{
     label: string;
@@ -22,7 +26,7 @@ export default function Header() {
     match?: (current: string) => boolean;
   }> = [
     { label: "Who We Are", href: "/who-we-are" },
-    { label: "Search", href: "/search" },
+    { label: "Marketplace", href: "/search" },
     { label: "Donate", href: "/donate" },
     {
       label: "Chats",
@@ -35,29 +39,43 @@ export default function Header() {
   ];
 
   useEffect(() => {
-    // Get current session
-    supabase.auth.getSession().then(({ data }) => {
-      const session = data.session;
-      setEmail(session?.user.email ?? null);
-      if (session?.user.id) {
-        void loadProfile(session.user.id);
-      } else {
-        setDisplayName(null);
-        setAvatarUrl(null);
-      }
-    });
-    // Listen for auth state changes (e.g. sign in / sign out)
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    async function init() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const userId = session?.user?.id ?? null;
       setEmail(session?.user?.email ?? null);
-      if (session?.user?.id) {
-        void loadProfile(session.user.id);
+      if (userId) {
+        void loadProfile(userId);
+        void refreshUnread(userId);
+        attachUnreadSubscription(userId);
       } else {
         setDisplayName(null);
         setAvatarUrl(null);
+        setHasUnreadChats(false);
+        attachUnreadSubscription(null);
+      }
+    }
+
+    void init();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      const userId = session?.user?.id ?? null;
+      setEmail(session?.user?.email ?? null);
+      if (userId) {
+        void loadProfile(userId);
+        void refreshUnread(userId);
+        attachUnreadSubscription(userId);
+      } else {
+        setDisplayName(null);
+        setAvatarUrl(null);
+        setHasUnreadChats(false);
+        attachUnreadSubscription(null);
       }
     });
     return () => {
       sub.subscription.unsubscribe();
+      attachUnreadSubscription(null);
     };
   }, []);
 
@@ -69,6 +87,43 @@ export default function Header() {
       .maybeSingle();
     setDisplayName(data?.name ?? null);
     setAvatarUrl(data?.avatar_url ?? null);
+  }
+
+  async function refreshUnread(userId: string) {
+    const { data } = await supabase
+      .from("chat_participants")
+      .select("has_unread")
+      .eq("user_id", userId)
+      .eq("has_unread", true)
+      .limit(1)
+      .maybeSingle();
+    setHasUnreadChats(Boolean(data?.has_unread));
+  }
+
+  function attachUnreadSubscription(userId: string | null) {
+    if (unreadChannelRef.current) {
+      void unreadChannelRef.current.unsubscribe();
+      unreadChannelRef.current = null;
+    }
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`chat-participants-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "chat_participants",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          void refreshUnread(userId);
+        },
+      )
+      .subscribe();
+
+    unreadChannelRef.current = channel;
   }
 
   useEffect(() => {
@@ -135,7 +190,12 @@ export default function Header() {
                 className={`${baseClasses} ${activeClasses}`}
                 aria-current={isActive ? "page" : undefined}
               >
-                {item.label}
+                <span className="inline-flex items-center gap-2">
+                  {item.label}
+                  {item.label === "Chats" && hasUnreadChats && (
+                    <span className="h-2 w-2 rounded-full bg-sky-400" />
+                  )}
+                </span>
               </button>
             );
           })}

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import ParallaxSection from "@/component/ParallaxSection";
@@ -16,6 +16,7 @@ type Chat = {
   seller_id: string;
   is_active: boolean;
   created_at: string;
+  last_message_at: string | null;
 };
 
 type Listing = {
@@ -34,87 +35,157 @@ type ProfileSummary = {
 type ChatRow = Chat & {
   listing: Listing | null;
   counterparty: ProfileSummary | null;
+  has_unread: boolean;
+  last_read_at: string | null;
 };
 
 export default function ChatsIndex() {
   const authStatus = useRequireAuth();
   const [rows, setRows] = useState<ChatRow[]>([]);
   const [msg, setMsg] = useState("");
+  const chatIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (authStatus !== "authenticated") return;
-    (async () => {
+
+    const subscriptions: Array<() => void> = [];
+
+    const init = async () => {
       const { data: sess } = await supabase.auth.getSession();
       const uid = sess.session?.user.id ?? null;
       if (!uid) return;
 
-      const { data: chats, error } = await supabase
-        .from("chats")
-        .select("*")
-        .or(`buyer_id.eq.${uid},seller_id.eq.${uid}`)
-        .order("created_at", { ascending: false });
+      await refreshChats(uid);
 
-      if (error) {
-        setMsg(`Error: ${error.message}`);
-        return;
-      }
+      const channel = supabase
+        .channel(`chat-updates-${uid}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "chat_participants",
+            filter: `user_id=eq.${uid}`,
+          },
+          () => {
+            void refreshChats(uid);
+          },
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+          },
+          (payload) => {
+            const chatId = (payload.new as { chat_id?: string }).chat_id;
+            if (chatId && chatIdsRef.current.has(chatId)) {
+              void refreshChats(uid);
+            }
+          },
+        )
+        .subscribe();
 
-      const chatRows = chats ?? [];
-      if (chatRows.length === 0) {
-        setRows([]);
-        return;
-      }
-
-      const listingIds = Array.from(new Set(chatRows.map((c) => c.listing_id)));
-      const counterpartyIds = Array.from(
-        new Set(
-          chatRows.map((c) => (c.buyer_id === uid ? c.seller_id : c.buyer_id)),
-        ),
-      );
-
-      const listingMap = new Map<string, Listing>();
-      if (listingIds.length > 0) {
-        const { data: listingData } = await supabase
-          .from("listings")
-          .select("id,title,photos")
-          .in("id", listingIds);
-        (listingData ?? []).forEach((item) => {
-          listingMap.set(item.id, {
-            id: item.id,
-            title: item.title,
-            photos: item.photos ?? null,
-          });
-        });
-      }
-
-      const profileMap = new Map<string, ProfileSummary>();
-      if (counterpartyIds.length > 0) {
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("id,name,avatar_url,bio")
-          .in("id", counterpartyIds);
-        (profileData ?? []).forEach((p) => {
-          profileMap.set(p.id, {
-            id: p.id,
-            name: p.name ?? null,
-            avatar_url: p.avatar_url ?? null,
-            bio: p.bio ?? null,
-          });
-        });
-      }
-
-      const hydrated: ChatRow[] = chatRows.map((chat) => {
-        const counterpartyId = chat.buyer_id === uid ? chat.seller_id : chat.buyer_id;
-        return {
-          ...chat,
-          listing: listingMap.get(chat.listing_id) ?? null,
-          counterparty: counterpartyId ? profileMap.get(counterpartyId) ?? null : null,
-        };
+      subscriptions.push(() => {
+        void channel.unsubscribe();
       });
+    };
 
-      setRows(hydrated);
-    })();
+    void init();
+
+    return () => {
+      subscriptions.forEach((unsubscribe) => unsubscribe());
+    };
   }, [authStatus]);
+
+  async function refreshChats(userId: string) {
+    const { data: chats, error } = await supabase
+      .from("chats")
+      .select("*")
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+      .not("last_message_at", "is", null)
+      .order("last_message_at", { ascending: false });
+
+    if (error) {
+      setMsg(`Error: ${error.message}`);
+      return;
+    }
+
+    const chatRows = chats ?? [];
+    chatIdsRef.current = new Set(chatRows.map((chat) => chat.id));
+
+    if (chatRows.length === 0) {
+      setRows([]);
+      return;
+    }
+
+    const listingIds = Array.from(new Set(chatRows.map((c) => c.listing_id)));
+    const counterpartyIds = Array.from(
+      new Set(chatRows.map((c) => (c.buyer_id === userId ? c.seller_id : c.buyer_id))),
+    ).filter(Boolean) as string[];
+
+    const listingMap = new Map<string, Listing>();
+    if (listingIds.length > 0) {
+      const { data: listingData } = await supabase
+        .from("listings")
+        .select("id,title,photos")
+        .in("id", listingIds);
+      (listingData ?? []).forEach((item) => {
+        listingMap.set(item.id, {
+          id: item.id,
+          title: item.title,
+          photos: item.photos ?? null,
+        });
+      });
+    }
+
+    const profileMap = new Map<string, ProfileSummary>();
+    if (counterpartyIds.length > 0) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("id,name,avatar_url,bio")
+        .in("id", counterpartyIds);
+      (profileData ?? []).forEach((p) => {
+        profileMap.set(p.id, {
+          id: p.id,
+          name: p.name ?? null,
+          avatar_url: p.avatar_url ?? null,
+          bio: p.bio ?? null,
+        });
+      });
+    }
+
+    const { data: participantRows } = await supabase
+      .from("chat_participants")
+      .select("chat_id,has_unread,last_read_at")
+      .eq("user_id", userId)
+      .in(
+        "chat_id",
+        chatRows.map((chat) => chat.id),
+      );
+    const participantMap = new Map<string, { has_unread: boolean; last_read_at: string | null }>();
+    (participantRows ?? []).forEach((row) => {
+      participantMap.set(row.chat_id, {
+        has_unread: row.has_unread,
+        last_read_at: row.last_read_at,
+      });
+    });
+
+    const hydrated: ChatRow[] = chatRows.map((chat) => {
+      const counterpartyId = chat.buyer_id === userId ? chat.seller_id : chat.buyer_id;
+      const participant = participantMap.get(chat.id);
+      return {
+        ...chat,
+        listing: listingMap.get(chat.listing_id) ?? null,
+        counterparty: counterpartyId ? profileMap.get(counterpartyId) ?? null : null,
+        has_unread: participant?.has_unread ?? false,
+        last_read_at: participant?.last_read_at ?? null,
+      };
+    });
+
+    setRows(hydrated);
+  }
 
   if (authStatus === "checking") {
     return (
@@ -197,8 +268,11 @@ export default function ChatsIndex() {
               return (
                 <div
                   key={c.id}
-                  className="rounded-3xl border border-white/15 bg-white/10 px-5 py-5 shadow-lg backdrop-blur-lg"
+                  className="relative rounded-3xl border border-white/15 bg-white/10 px-5 py-5 shadow-lg backdrop-blur-lg"
                 >
+                  {c.has_unread && (
+                    <span className="absolute right-4 top-4 h-2.5 w-2.5 rounded-full bg-sky-400" />
+                  )}
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
                     {c.listing?.photos?.[0] ? (
                       <Image

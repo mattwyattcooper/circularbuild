@@ -7,8 +7,8 @@ import { useEffect, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import { cleanListingDescription } from "@/lib/cleanListingDescription";
-import { useRequireAuth } from "@/lib/useRequireAuth";
 import { supabase } from "@/lib/supabaseClient";
+import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type ListingOwner = {
   id: string;
@@ -52,7 +52,10 @@ export default function ListingDetail() {
     (async () => {
       try {
         const res = await fetch(`/api/listings/${params.id}`);
-        const payload = (await res.json()) as { listing?: Listing; error?: string };
+        const payload = (await res.json()) as {
+          listing?: Listing;
+          error?: string;
+        };
         if (!res.ok || !payload.listing) {
           if (!active) return;
           setMsg(`Error loading listing: ${payload.error ?? res.statusText}`);
@@ -102,35 +105,22 @@ export default function ListingDetail() {
       }
       if (!l) throw new Error("Listing not loaded");
 
-      const buyer = sess.session.user.id;
-      const seller = l.owner_id;
-      const listingId = l.id;
+      const response = await fetch("/api/chats/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId: l.id }),
+      });
 
-      // Check if chat already exists
-      const { data: existing, error: existingError } = await supabase
-        .from("chats")
-        .select("id")
-        .eq("listing_id", listingId)
-        .eq("buyer_id", buyer)
-        .eq("seller_id", seller)
-        .maybeSingle();
+      const data = (await response.json()) as {
+        chatId?: string;
+        error?: string;
+      };
 
-      if (existingError) throw existingError;
-
-      let chatId = existing?.id;
-
-      if (!chatId) {
-        const { data, error: insErr } = await supabase
-          .from("chats")
-          .insert({ listing_id: listingId, buyer_id: buyer, seller_id: seller })
-          .select("id")
-          .single();
-        if (insErr) throw insErr;
-        chatId = data.id;
+      if (!response.ok || !data?.chatId) {
+        throw new Error(data?.error ?? "Unable to start chat.");
       }
 
-      // go to the chat page
-      router.push(`/chats/${chatId}`);
+      router.push(`/chats/${data.chatId}`);
     } catch (error) {
       console.error(error);
       const message = error instanceof Error ? error.message : "";
@@ -273,6 +263,7 @@ export default function ListingDetail() {
                       strokeWidth="1.25"
                       className="h-8 w-8"
                     >
+                      <title>Profile icon</title>
                       <circle cx="12" cy="8" r="4" />
                       <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
                     </svg>

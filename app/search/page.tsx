@@ -281,7 +281,7 @@ export default function SearchPage() {
           <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-14 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
             <div className="flex-1 space-y-5">
               <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
-                Marketplace search
+                Marketplace
               </span>
               <h1 className="text-[clamp(2.4rem,4vw,3.8rem)] font-extrabold leading-tight">
                 Discover surplus materials ready for reuse.
@@ -296,12 +296,12 @@ export default function SearchPage() {
               )}
             </div>
             <div className="w-full max-w-xl rounded-3xl border border-white/15 bg-white/10 p-6 shadow-xl backdrop-blur">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-200">
-                  Filters
-                </p>
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 p-1 text-xs">
-                  <button
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-200">
+                Filters
+              </p>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 p-1 text-xs">
+                <button
                     type="button"
                     className={`rounded-full px-3 py-1 font-semibold transition ${
                       viewMode === "list"
@@ -328,32 +328,32 @@ export default function SearchPage() {
               <div className="mt-5 grid grid-cols-1 gap-4">
                 <label className="flex flex-col gap-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
-                    Keywords
+                    Material
+                  </span>
+                  <select
+                    className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                  >
+                    {MATERIALS.map((m) => (
+                      <option key={m} value={m}>
+                        {m === "" ? "All materials" : m}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                    Title · Description · Keywords
                   </span>
                   <input
                     className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                    placeholder="Search by title, description, or shape"
+                    placeholder="Search by title, description, or keywords"
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                   />
                 </label>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="flex flex-col gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
-                      Material
-                    </span>
-                    <select
-                      className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                      value={type}
-                      onChange={(e) => setType(e.target.value)}
-                    >
-                      {MATERIALS.map((m) => (
-                        <option key={m} value={m}>
-                          {m === "" ? "All materials" : m}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
                   <label className="flex flex-col gap-2">
                     <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
                       Radius (miles)
@@ -367,29 +367,29 @@ export default function SearchPage() {
                       onChange={(e) => setRadius(e.target.value)}
                     />
                   </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                      Focus results near
+                    </span>
+                    <input
+                      className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                      placeholder="Address or ZIP"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                    />
+                  </label>
                 </div>
-                <label className="flex flex-col gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
-                    Focus results near
-                  </span>
-                  <input
-                    className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                    placeholder="Address or ZIP"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                  />
-                </label>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <button
                     type="button"
-                    className="rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-emerald-100/90 transition hover:border-white hover:text-white"
+                    className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-emerald-100/90 transition hover:border-white hover:text-white"
                     onClick={handleUseCurrentLocation}
                   >
                     Use my location
                   </button>
                   <button
                     type="button"
-                    className="rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-400 disabled:opacity-60"
+                    className="inline-flex items-center justify-center rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-400 disabled:opacity-60"
                     onClick={() => fetchListings()}
                     disabled={loading}
                   >
@@ -413,6 +413,11 @@ export default function SearchPage() {
             <div className="h-full w-full bg-[radial-gradient(circle_at_bottom_left,_rgba(52,211,153,0.3),_transparent_60%)]" />
           </div>
           <div className="relative mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
+            <div className="mb-6 text-sm text-emerald-100/80">
+              {items.length > 0
+                ? `${items.length} listing${items.length === 1 ? "" : "s"} available`
+                : "No listings match the current filters."}
+            </div>
             {viewMode === "map" ? (
               <div className="h-[520px] overflow-hidden rounded-3xl border border-white/15 bg-white/10 shadow-xl backdrop-blur">
                 <ListingMap
@@ -509,12 +514,12 @@ export default function SearchPage() {
                           type="button"
                           className={`rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
                             saved
-                              ? "border-emerald-300/60 text-emerald-200"
+                              ? "border-emerald-300/60 bg-emerald-500/10 text-emerald-200"
                               : "border-white/20 text-emerald-100/80 hover:border-white hover:text-white"
                           }`}
                           onClick={() => toggleWishlist(l.id)}
                         >
-                          {saved ? "Saved" : "Save"}
+                          {saved ? "Saved to wishlist" : "Save to wishlist"}
                         </button>
                       </div>
                     </div>

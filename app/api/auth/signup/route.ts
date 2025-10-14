@@ -107,7 +107,14 @@ export async function POST(request: Request) {
     if (userId) {
       await adminClient
         .from("profiles")
-        .upsert({ id: userId, name: fullName || null }, { onConflict: "id" });
+        .upsert(
+          {
+            id: userId,
+            name: fullName || null,
+            email,
+          },
+          { onConflict: "id" },
+        );
     }
 
     const origin =
