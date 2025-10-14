@@ -19,6 +19,19 @@ function getTransport() {
   });
 }
 
+type Participant = {
+  id: string;
+  name: string | null;
+  email: string | null;
+};
+
+type ChatInfo = {
+  id: string;
+  listing: { title: string | null } | null;
+  buyer: Participant | null;
+  seller: Participant | null;
+};
+
 export async function POST(request: Request) {
   try {
     const { chatId, body } = (await request.json()) as {
@@ -86,18 +99,17 @@ export async function POST(request: Request) {
       const { data: chatInfo } = await adminClient
         .from("chats")
         .select(
-          "id, listing:listings(title), buyer:profiles!chats_buyer_id_fkey(id,name,email), seller:profiles!chats_seller_id_fkey(id,name,email)"
+          "id, listing:listings(title), buyer:profiles!chats_buyer_id_fkey(id,name,email), seller:profiles!chats_seller_id_fkey(id,name,email)",
         )
         .eq("id", chatId)
-        .maybeSingle();
+        .maybeSingle<ChatInfo>();
 
       if (chatInfo) {
         const recipients = [chatInfo.buyer, chatInfo.seller]
-          .filter(
-            (
-              recipient,
-            ): recipient is { id: string; name: string | null; email: string | null } =>
-              Boolean(recipient && recipient.email && recipient.id !== userId),
+          .filter((recipient): recipient is Participant =>
+            Boolean(
+              recipient?.email && recipient?.id && recipient.id !== userId,
+            ),
           )
           .map((recipient) => ({
             email: recipient.email as string,
@@ -117,9 +129,9 @@ export async function POST(request: Request) {
               "https://www.circularbuild.org";
             const chatLink = `${linkBase}/chats/${chatId}`;
 
-           await Promise.all(
-             recipients.map(async ({ email, name }) => {
-               try {
+            await Promise.all(
+              recipients.map(async ({ email, name }) => {
+                try {
                   const textBody = `Hi ${name},\n\n${senderName} just sent you a message about "${listingTitle}".\n\nOpen the chat to reply: ${chatLink}\n\n– CircularBuild`;
                   const htmlBody = `
                     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a;">
@@ -137,7 +149,8 @@ export async function POST(request: Request) {
 
                   await transporter.sendMail({
                     from:
-                      process.env.SMTP_FROM ?? "CircularBuild <no-reply@circularbuild.org>",
+                      process.env.SMTP_FROM ??
+                      "CircularBuild <no-reply@circularbuild.org>",
                     to: email,
                     subject: `New message about ${listingTitle}`,
                     text: textBody,
@@ -157,7 +170,9 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Send message failed", error);
     const message =
-      error instanceof Error ? error.message : "Unexpected error sending message.";
+      error instanceof Error
+        ? error.message
+        : "Unexpected error sending message.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
