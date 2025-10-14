@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
+export const runtime = "nodejs";
+
 function getTransport() {
   const host = process.env.SMTP_HOST;
   const portString = process.env.SMTP_PORT;
@@ -148,7 +150,11 @@ export async function POST(request: Request) {
 
         if (recipients.length > 0) {
           const transporter = getTransport();
-          if (transporter) {
+          if (!transporter) {
+            console.error(
+              "Chat email skipped: SMTP credentials are not configured in the server environment.",
+            );
+          } else {
             const senderName =
               (session.user.user_metadata?.full_name as string | undefined) ??
               "A CircularBuild member";

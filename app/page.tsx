@@ -1,7 +1,7 @@
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { createClient } from "@supabase/supabase-js";
 
 import HeroSection from "@/component/HeroSection";
 import ListingCard, { type ListingCardData } from "@/component/ListingCard";
@@ -10,17 +10,20 @@ import ParallaxSection from "@/component/ParallaxSection";
 const QUICK_NAV = [
   {
     label: "Explore marketplace",
-    description: "Preview reuse-ready materials before you create an account.",
+    description:
+      "Preview donation-powered inventories and see what the community is sharing right now.",
     href: "/search",
   },
   {
     label: "Donate materials",
-    description: "List surplus and coordinate pickups in minutes.",
+    description:
+      "Post surplus items, schedule pickups, and document every donation in one workflow.",
     href: "/donate",
   },
   {
     label: "Read the briefing room",
-    description: "Policy wins, project spotlights, and platform data.",
+    description:
+      "Policy wins, donor spotlights, and the data behind high-impact reuse.",
     href: "/news",
   },
   {
@@ -113,7 +116,10 @@ export default async function Home() {
     .order("created_at", { ascending: false })
     .limit(2);
 
-  let owners: Record<string, { id: string; name: string | null; avatar_url: string | null }> = {};
+  let owners: Record<
+    string,
+    { id: string; name: string | null; avatar_url: string | null }
+  > = {};
 
   const ownerIds = Array.from(
     new Set(
@@ -154,13 +160,14 @@ export default async function Home() {
     availableLabel: listing.available_until
       ? `Available until ${listing.available_until}`
       : undefined,
-    owner: listing.owner_id && owners[listing.owner_id]
-      ? {
-          id: owners[listing.owner_id].id,
-          name: owners[listing.owner_id].name ?? undefined,
-          avatarUrl: owners[listing.owner_id].avatar_url ?? undefined,
-        }
-      : undefined,
+    owner:
+      listing.owner_id && owners[listing.owner_id]
+        ? {
+            id: owners[listing.owner_id].id,
+            name: owners[listing.owner_id].name ?? undefined,
+            avatarUrl: owners[listing.owner_id].avatar_url ?? undefined,
+          }
+        : undefined,
   }));
 
   const hasLiveListings = cards.length > 0;
@@ -189,11 +196,12 @@ export default async function Home() {
               Navigate the platform
             </span>
             <h2 className="text-[clamp(2.25rem,3vw,3.5rem)] font-bold leading-tight">
-              Where do you want to go next?
+              Move your donations from surplus piles to new builds.
             </h2>
             <p className="max-w-xl text-base text-emerald-100 sm:text-lg">
-              Move seamlessly between marketplace browsing, donor tools, and
-              learning resources with a single account.
+              Navigate the tools that help you post available materials, match
+              with crews who need them, and learn how donation logistics stay on
+              schedule.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -236,11 +244,11 @@ export default async function Home() {
               Marketplace preview
             </span>
             <h2 className="text-[clamp(2rem,3.5vw,3rem)] font-bold">
-              Explore reuse-ready materials across the network.
+              Explore donation-driven inventories across the network.
             </h2>
             <p className="text-sm text-emerald-100 sm:text-base">
               Preview a handful of active donations below. Sign in when
-              you&apos;re ready to save listings, chat with donors, or
+              you&apos;re ready to save listings, chat directly with donors, and
               coordinate pickups.
             </p>
           </div>
@@ -379,8 +387,8 @@ export default async function Home() {
             Ready to keep materials in circulation?
           </h2>
           <p className="max-w-3xl text-sm text-emerald-100 sm:text-base">
-            Create an account to publish donations, follow the marketplace, and
-            share diversion data with your stakeholders.
+            Create an account to publish donations, receive real-time interest
+            from builders, and share diversion data with your stakeholders.
           </p>
           <div className="flex flex-wrap gap-5 text-sm font-semibold">
             <Link
