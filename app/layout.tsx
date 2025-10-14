@@ -27,6 +27,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <span>© {year} CircularBuild. All rights reserved.</span>
             <div className="flex flex-wrap items-center gap-4">
               <Link
+                href="/privacy"
+                className="font-medium text-slate-700 hover:text-emerald-700"
+              >
+                Privacy Notice
+              </Link>
+              <Link
                 href="/terms"
                 className="font-medium text-slate-700 hover:text-emerald-700"
               >

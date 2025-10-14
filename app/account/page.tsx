@@ -45,9 +45,7 @@ export default function AccountSettingsPage() {
 
       const { data: profileData } = await supabase
         .from("profiles")
-        .select(
-          "id,name,is_admin,gender,age,interests,bio,avatar_url",
-        )
+        .select("id,name,is_admin,gender,age,interests,bio,avatar_url")
         .eq("id", uid)
         .maybeSingle();
       if (profileData) {
@@ -213,18 +211,6 @@ export default function AccountSettingsPage() {
           </p>
         </header>
 
-        {msg && (
-          <div
-            className={`rounded-2xl border px-4 py-3 text-sm shadow-lg backdrop-blur-lg ${
-              messageIsError
-                ? "border-rose-200/40 bg-rose-500/20 text-rose-100"
-                : "border-emerald-200/40 bg-emerald-500/20 text-emerald-100"
-            }`}
-          >
-            {msg}
-          </div>
-        )}
-
         <section className="rounded-3xl border border-white/15 bg-white/10 px-6 py-8 shadow-xl backdrop-blur-lg">
           <h2 className="text-lg font-semibold text-white">Profile details</h2>
           <div className="mt-6 grid gap-6 lg:grid-cols-[auto,1fr] lg:items-start">
@@ -240,19 +226,20 @@ export default function AccountSettingsPage() {
                       className="h-28 w-28 object-cover"
                     />
                   ) : (
-                  <div className="grid h-28 w-28 place-items-center text-emerald-100/70">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      className="h-14 w-14"
-                    >
-                      <circle cx="12" cy="8" r="4" />
-                      <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
-                    </svg>
-                  </div>
+                    <div className="grid h-28 w-28 place-items-center text-emerald-100/70">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        className="h-14 w-14"
+                      >
+                        <title>Profile icon</title>
+                        <circle cx="12" cy="8" r="4" />
+                        <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
+                      </svg>
+                    </div>
                   )}
                 </div>
                 <label className="flex cursor-pointer items-center justify-center rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200 transition hover:border-white hover:text-white">
@@ -366,7 +353,8 @@ export default function AccountSettingsPage() {
                   setName(profile.name ?? "");
                   setGender(profile.gender ?? "");
                   setAge(
-                    typeof profile.age === "number" && !Number.isNaN(profile.age)
+                    typeof profile.age === "number" &&
+                      !Number.isNaN(profile.age)
                       ? String(profile.age)
                       : "",
                   );
@@ -405,6 +393,18 @@ export default function AccountSettingsPage() {
             </li>
           </ul>
         </section>
+
+        {msg && (
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm shadow-lg backdrop-blur-lg ${
+              messageIsError
+                ? "border-rose-200/40 bg-rose-500/20 text-rose-100"
+                : "border-emerald-200/40 bg-emerald-500/20 text-emerald-100"
+            }`}
+          >
+            {msg}
+          </div>
+        )}
       </div>
     </main>
   );

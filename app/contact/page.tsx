@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import type { ChangeEvent } from "react";
+import { useRef, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import { useRequireAuth } from "@/lib/useRequireAuth";
@@ -10,9 +11,49 @@ export default function ContactPage() {
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
-  const [files, setFiles] = useState<FileList | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [msg, setMsg] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const attachmentsInputRef = useRef<HTMLInputElement | null>(null);
+
+  const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+  function handleFileSelect(event: ChangeEvent<HTMLInputElement>) {
+    const incoming = Array.from(event.target.files ?? []);
+    if (!incoming.length) return;
+
+    const accepted: File[] = [];
+    let rejectedName: string | null = null;
+
+    incoming.forEach((file) => {
+      if (file.size > MAX_FILE_SIZE) {
+        if (!rejectedName) {
+          rejectedName = file.name;
+        }
+        return;
+      }
+      accepted.push(file);
+    });
+
+    if (rejectedName) {
+      setMsg(`Error: "${rejectedName}" exceeds the 10 MB limit.`);
+    }
+
+    if (accepted.length > 0) {
+      setFiles((prev) => [...prev, ...accepted]);
+      if (!rejectedName) {
+        setMsg("");
+      }
+    }
+
+    if (attachmentsInputRef.current) {
+      attachmentsInputRef.current.value = "";
+    }
+  }
+
+  function removeFile(index: number) {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  }
 
   async function submit() {
     setMsg("");
@@ -26,8 +67,8 @@ export default function ContactPage() {
       formData.append("name", name.trim());
       formData.append("subject", subject.trim());
       formData.append("body", body.trim());
-      if (files?.length) {
-        Array.from(files).forEach((file) => {
+      if (files.length) {
+        files.forEach((file) => {
           formData.append("attachments", file);
         });
       }
@@ -53,11 +94,10 @@ export default function ContactPage() {
       setName("");
       setSubject("");
       setBody("");
-      setFiles(null);
-      const input = document.getElementById(
-        "attachments",
-      ) as HTMLInputElement | null;
-      if (input) input.value = "";
+      setFiles([]);
+      if (attachmentsInputRef.current) {
+        attachmentsInputRef.current.value = "";
+      }
     } catch (error) {
       console.error(error);
       const message =
@@ -91,16 +131,13 @@ export default function ContactPage() {
     );
   }
 
-  const selectedFileNames = files?.length
-    ? Array.from(files)
-        .map((file) => file.name)
-        .join(", ")
-    : null;
-
   return (
     <main className="flex flex-col text-white">
       <section className="relative isolate overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950">
-        <div className="pointer-events-none absolute inset-0 opacity-35" aria-hidden>
+        <div
+          className="pointer-events-none absolute inset-0 opacity-35"
+          aria-hidden
+        >
           <div className="h-full w-full bg-[radial-gradient(circle_at_top_right,_rgba(74,222,128,0.32),_transparent_60%)]" />
         </div>
         <div className="relative mx-auto flex min-h-[40vh] w-full max-w-6xl flex-col justify-center gap-6 px-4 py-16 sm:px-6 lg:px-10">
@@ -112,14 +149,19 @@ export default function ContactPage() {
               Let’s keep your materials moving.
             </h1>
             <p className="text-sm text-emerald-100/85 sm:text-base">
-              Ask about a listing, request donor support, or share product feedback. Attach files so we can assist even faster.
+              Ask about a listing, request donor support, coordinate a
+              partnership, or share product feedback. Attach files so we can
+              assist even faster.
             </p>
           </div>
         </div>
       </section>
 
       <section className="relative isolate w-full overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950">
-        <div className="pointer-events-none absolute inset-0 opacity-25" aria-hidden>
+        <div
+          className="pointer-events-none absolute inset-0 opacity-25"
+          aria-hidden
+        >
           <div className="h-full w-full bg-[radial-gradient(circle_at_bottom_left,_rgba(16,185,129,0.28),_transparent_60%)]" />
         </div>
         <div className="relative mx-auto w-full max-w-4xl px-4 py-14 sm:px-6 lg:px-8">
@@ -172,20 +214,35 @@ export default function ContactPage() {
                 <span>Choose files</span>
               </label>
               <input
+                ref={attachmentsInputRef}
                 id="attachments"
                 type="file"
                 accept="application/pdf,image/jpeg,image/png"
                 multiple
                 className="sr-only"
-                onChange={(e) => setFiles(e.target.files)}
+                onChange={handleFileSelect}
               />
               <span className="text-xs text-emerald-100/70">
                 Attach screenshots, plans, or paperwork. Max 10 MB per file.
               </span>
-              {selectedFileNames && (
-                <span className="text-xs text-emerald-100/80">
-                  {selectedFileNames}
-                </span>
+              {files.length > 0 && (
+                <ul className="space-y-1 text-xs text-emerald-100/80">
+                  {files.map((file, index) => (
+                    <li
+                      key={`${file.name}-${index}`}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <span className="truncate">{file.name}</span>
+                      <button
+                        type="button"
+                        className="rounded-full border border-white/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-100/80 transition hover:border-white hover:text-white"
+                        onClick={() => removeFile(index)}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
 
@@ -197,11 +254,11 @@ export default function ContactPage() {
                   setName("");
                   setSubject("");
                   setBody("");
-                  setFiles(null);
-                  const input = document.getElementById(
-                    "attachments",
-                  ) as HTMLInputElement | null;
-                  if (input) input.value = "";
+                  setFiles([]);
+                  if (attachmentsInputRef.current) {
+                    attachmentsInputRef.current.value = "";
+                  }
+                  setMsg("");
                 }}
               >
                 Clear

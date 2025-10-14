@@ -74,13 +74,13 @@ export default function FAQsPage() {
         maxOffset={200}
       >
         <div className="mx-auto flex min-h-[45vh] max-w-6xl flex-col justify-center gap-6 px-4 py-14 sm:px-6 lg:px-8">
-          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
+          <span className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-200">
             Help desk
           </span>
-          <h1 className="text-[clamp(2rem,4vw,3.4rem)] font-extrabold leading-tight">
+          <h1 className="text-[clamp(2.25rem,4.2vw,3.6rem)] font-extrabold leading-tight">
             Frequently asked questions about getting materials moving.
           </h1>
-          <p className="max-w-2xl text-sm text-emerald-100/90 sm:text-base">
+          <p className="max-w-2xl text-base text-emerald-100/90 sm:text-lg">
             Browse quick answers to the most common donor and builder questions.
             Need more detail? Reach out anytime.
           </p>
@@ -101,17 +101,17 @@ export default function FAQsPage() {
                 key={item.question}
                 className="rounded-3xl border border-white/15 bg-white/10 px-6 py-5 shadow-lg backdrop-blur-lg"
               >
-                <h2 className="text-lg font-semibold text-white">
+                <h2 className="text-xl font-semibold text-white">
                   {item.question}
                 </h2>
-                <p className="mt-3 text-sm text-emerald-100/85">
+                <p className="mt-3 text-base text-emerald-100/85">
                   {item.answer}
                 </p>
               </article>
             ))}
           </div>
 
-          <div className="mt-10 rounded-3xl border border-white/15 bg-white/10 px-6 py-5 text-sm text-emerald-100/85 shadow-lg backdrop-blur-lg">
+          <div className="mt-10 rounded-3xl border border-white/15 bg-white/10 px-6 py-5 text-base text-emerald-100/85 shadow-lg backdrop-blur-lg">
             Still have questions?{" "}
             <a
               href="/contact"

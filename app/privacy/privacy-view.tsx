@@ -1,18 +1,18 @@
 import ParallaxSection from "@/component/ParallaxSection";
 
-import type { TermsSection } from "./page";
+import type { PrivacySection } from "./page";
 
 type Props = {
-  sections: TermsSection[];
+  sections: PrivacySection[];
   lastUpdated: string;
 };
 
-export default function TermsView({ sections, lastUpdated }: Props) {
+export default function PrivacyView({ sections, lastUpdated }: Props) {
   return (
     <main className="flex flex-col text-white">
       <ParallaxSection
-        imageSrc="https://images.unsplash.com/photo-1454165205744-3b78555e5572?auto=format&fit=crop&w=2400&q=80"
-        imageAlt="Team reviewing agreements"
+        imageSrc="https://images.unsplash.com/photo-1483478550801-ceba5fe50e8e?auto=format&fit=crop&w=2400&q=80"
+        imageAlt="Hands reviewing privacy policy documents"
         overlayClassName="bg-slate-950/65"
         className="mt-[-1px]"
         speed={0.2}
@@ -20,15 +20,15 @@ export default function TermsView({ sections, lastUpdated }: Props) {
       >
         <div className="mx-auto flex min-h-[45vh] max-w-5xl flex-col justify-center gap-6 px-4 py-14 text-center sm:px-6 lg:px-8">
           <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
-            Terms & Conditions
+            Privacy Policy
           </span>
           <h1 className="text-[clamp(2.2rem,4vw,3.5rem)] font-extrabold leading-tight">
-            Guidelines for keeping donations transparent and safe.
+            How CircularBuild protects and respects your information.
           </h1>
-          <p className="mx-auto max-w-2xl text-sm text-emerald-100/90 sm:text-base">
-            These terms describe the responsibilities, assumptions of risk, and
-            releases of liability when donating or receiving materials through
-            CircularBuild.
+          <p className="mx-auto max-w-3xl text-sm text-emerald-100/90 sm:text-base">
+            This notice explains the data we collect, how it is used, and the
+            choices available to you when engaging with the CircularBuild
+            Platform.
           </p>
           <p className="text-xs uppercase tracking-[0.35em] text-emerald-200">
             Last updated: {lastUpdated}
@@ -52,16 +52,16 @@ export default function TermsView({ sections, lastUpdated }: Props) {
               <h2 className="text-xl font-semibold text-white">
                 {section.title}
               </h2>
-              <div className="mt-3 space-y-3 text-sm leading-relaxed text-emerald-100/85 [&_a]:text-emerald-200 [&_a]:underline [&_a]:underline-offset-4 [&_ol]:list-[lower-alpha] [&_ol]:space-y-1 [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6">
+              <div className="mt-3 space-y-3 text-sm leading-relaxed text-emerald-100/85 [&_a]:text-emerald-200 [&_a]:underline [&_a]:underline-offset-4 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6">
                 {section.body}
               </div>
             </article>
           ))}
 
           <footer className="rounded-3xl border border-white/15 bg-white/10 px-6 py-6 text-sm text-emerald-100/85 shadow-lg backdrop-blur-lg">
-            By continuing to use CircularBuild, you acknowledge that you have
-            read, understood, and agree to these Terms & Conditions. If you do
-            not agree, please discontinue use of the Platform.
+            We are committed to respecting your privacy. If you have questions
+            about how your information is used, please reach out. This notice
+            may change as regulations evolve.
             <div className="mt-3 text-xs text-emerald-200/80">
               Last updated: {lastUpdated}
             </div>

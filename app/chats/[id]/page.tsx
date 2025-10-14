@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
@@ -60,7 +61,10 @@ export default function ChatPage() {
   const [reportBody, setReportBody] = useState("");
   const [reportStatus, setReportStatus] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportFiles, setReportFiles] = useState<File[]>([]);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const reportFileInputRef = useRef<HTMLInputElement | null>(null);
+  const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
 
   // Scroll to bottom helper
   const scrollToBottom = useCallback(() => {
@@ -248,6 +252,43 @@ export default function ChatPage() {
       : null;
   const counterpartyName = counterpartProfile?.name ?? "the other user";
 
+  function handleReportFileSelect(event: ChangeEvent<HTMLInputElement>) {
+    const incoming = Array.from(event.target.files ?? []);
+    if (!incoming.length) return;
+
+    const accepted: File[] = [];
+    let rejected: string | null = null;
+
+    incoming.forEach((file) => {
+      if (file.size > MAX_ATTACHMENT_SIZE) {
+        if (!rejected) {
+          rejected = file.name;
+        }
+        return;
+      }
+      accepted.push(file);
+    });
+
+    if (rejected) {
+      setReportStatus(`Error: "${rejected}" exceeds the 10 MB limit.`);
+    }
+
+    if (accepted.length > 0) {
+      setReportFiles((prev) => [...prev, ...accepted]);
+      if (!rejected && reportStatus.startsWith("Error:")) {
+        setReportStatus("");
+      }
+    }
+
+    if (reportFileInputRef.current) {
+      reportFileInputRef.current.value = "";
+    }
+  }
+
+  function removeReportFile(index: number) {
+    setReportFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
   async function submitReport() {
     setReportStatus("");
     if (!reportBody.trim()) {
@@ -265,6 +306,9 @@ export default function ChatPage() {
         "body",
         `${reportBody.trim()}\n\nChat ID: ${chatId}\nListing: ${listingTitle}\nCounterparty: ${counterpartyName}\nReporter email: ${myEmail ?? "unknown"}`,
       );
+      reportFiles.forEach((file) => {
+        formData.append("attachments", file);
+      });
 
       const response = await fetch("/api/contact", {
         method: "POST",
@@ -276,9 +320,17 @@ export default function ChatPage() {
       }
       setReportStatus("Report sent. Our team will review it shortly.");
       setReportBody("");
+      setReportFiles([]);
+      if (reportFileInputRef.current) {
+        reportFileInputRef.current.value = "";
+      }
       setTimeout(() => {
         setReportOpen(false);
         setReportStatus("");
+        setReportFiles([]);
+        if (reportFileInputRef.current) {
+          reportFileInputRef.current.value = "";
+        }
       }, 1500);
     } catch (error) {
       console.error("Report submission failed", error);
@@ -462,6 +514,10 @@ export default function ChatPage() {
                   onClick={() => {
                     setReportStatus("");
                     setReportBody("");
+                    setReportFiles([]);
+                    if (reportFileInputRef.current) {
+                      reportFileInputRef.current.value = "";
+                    }
                     setReportOpen(true);
                   }}
                 >
@@ -542,6 +598,48 @@ export default function ChatPage() {
               onChange={(event) => setReportBody(event.target.value)}
               placeholder="Explain what happened…"
             />
+            <div className="space-y-2">
+              <input
+                ref={reportFileInputRef}
+                id="harassment-attachments"
+                type="file"
+                className="hidden"
+                multiple
+                accept="image/*,application/pdf"
+                onChange={handleReportFileSelect}
+              />
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-emerald-100/80 transition hover:border-white hover:text-white"
+                onClick={() => reportFileInputRef.current?.click()}
+                disabled={reportSubmitting}
+              >
+                Choose files
+              </button>
+              <p className="text-xs text-emerald-100/70">
+                Optional screenshots or evidence (up to 10&nbsp;MB each).
+              </p>
+              {reportFiles.length > 0 && (
+                <ul className="space-y-1 text-xs text-emerald-100/80">
+                  {reportFiles.map((file, index) => (
+                    <li
+                      key={`${file.name}-${index}`}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <span className="truncate">{file.name}</span>
+                      <button
+                        type="button"
+                        className="rounded-full border border-white/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-100/80 transition hover:border-white hover:text-white"
+                        onClick={() => removeReportFile(index)}
+                        disabled={reportSubmitting}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             {reportStatus && (
               <div className="text-xs text-emerald-100/80">{reportStatus}</div>
             )}
@@ -550,8 +648,13 @@ export default function ChatPage() {
                 type="button"
                 className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-emerald-100/80 transition hover:border-white hover:text-white"
                 onClick={() => {
-                  setReportOpen(false);
                   setReportStatus("");
+                  setReportBody("");
+                  setReportFiles([]);
+                  if (reportFileInputRef.current) {
+                    reportFileInputRef.current.value = "";
+                  }
+                  setReportOpen(false);
                 }}
                 disabled={reportSubmitting}
               >

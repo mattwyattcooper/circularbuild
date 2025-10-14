@@ -167,8 +167,14 @@ export default function WishlistPage() {
             </div>
           ) : rows.length === 0 ? (
             <div className="rounded-3xl border border-white/15 bg-white/10 px-6 py-10 text-sm text-emerald-100/80 shadow-lg backdrop-blur-lg">
-              Your wishlist is empty. Switch to map or list view on the Search
-              tab to add items that fit your next project.
+              Your wishlist is empty. Head to the{" "}
+              <Link
+                href="/search"
+                className="font-semibold text-emerald-200 underline underline-offset-4 hover:text-white"
+              >
+                Marketplace
+              </Link>{" "}
+              to discover materials and save them for later.
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">

@@ -105,16 +105,46 @@ export async function POST(request: Request) {
         .maybeSingle<ChatInfo>();
 
       if (chatInfo) {
-        const recipients = [chatInfo.buyer, chatInfo.seller]
-          .filter((recipient): recipient is Participant =>
-            Boolean(
-              recipient?.email && recipient?.id && recipient.id !== userId,
-            ),
-          )
-          .map((recipient) => ({
-            email: recipient.email as string,
-            name: recipient.name ?? "CircularBuild member",
-          }));
+        const participants: Participant[] = [
+          chatInfo.buyer,
+          chatInfo.seller,
+        ].filter((p): p is Participant => Boolean(p?.id));
+
+        const recipients: Array<{ email: string; name: string }> = [];
+
+        for (const participantRecord of participants) {
+          if (participantRecord.id === userId) continue;
+          let recipientEmail = participantRecord.email?.trim() ?? "";
+          let recipientName = participantRecord.name ?? null;
+
+          if (!recipientEmail) {
+            try {
+              const { data, error } = await adminClient.auth.admin.getUserById(
+                participantRecord.id,
+              );
+              if (!error && data?.user) {
+                recipientEmail = data.user.email ?? recipientEmail;
+                if (!recipientName) {
+                  const fullName = data.user.user_metadata?.full_name as
+                    | string
+                    | undefined;
+                  recipientName = fullName ?? null;
+                }
+              } else if (error) {
+                console.error("Failed to fetch participant email", error);
+              }
+            } catch (fetchError) {
+              console.error("Failed to fetch participant email", fetchError);
+            }
+          }
+
+          if (recipientEmail) {
+            recipients.push({
+              email: recipientEmail,
+              name: recipientName ?? "CircularBuild member",
+            });
+          }
+        }
 
         if (recipients.length > 0) {
           const transporter = getTransport();
