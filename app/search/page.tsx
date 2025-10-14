@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { KeyboardEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
@@ -40,17 +41,20 @@ type Listing = {
   description: string;
   photos: string[] | null;
   created_at: string;
-  owner?: {
-    id: string;
-    name: string | null;
-    avatar_url: string | null;
-    bio: string | null;
-  } | null | Array<{
-      id: string;
-      name: string | null;
-      avatar_url: string | null;
-      bio: string | null;
-    }>;
+  owner?:
+    | {
+        id: string;
+        name: string | null;
+        avatar_url: string | null;
+        bio: string | null;
+      }
+    | null
+    | Array<{
+        id: string;
+        name: string | null;
+        avatar_url: string | null;
+        bio: string | null;
+      }>;
 };
 
 export default function SearchPage() {
@@ -144,6 +148,16 @@ export default function SearchPage() {
       }
     },
     [address, origin, q, radiusMiles, type],
+  );
+
+  const handleFilterKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        void fetchListings();
+      }
+    },
+    [fetchListings],
   );
 
   const initialQueryLoaded = useRef(false);
@@ -275,7 +289,10 @@ export default function SearchPage() {
       )}
       <main className="flex flex-col text-white">
         <section className="relative isolate overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950">
-          <div className="pointer-events-none absolute inset-0 opacity-35" aria-hidden>
+          <div
+            className="pointer-events-none absolute inset-0 opacity-35"
+            aria-hidden
+          >
             <div className="h-full w-full bg-[radial-gradient(circle_at_top_right,_rgba(74,222,128,0.35),_transparent_60%)]" />
           </div>
           <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-14 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
@@ -287,21 +304,24 @@ export default function SearchPage() {
                 Discover surplus materials ready for reuse.
               </h1>
               <p className="max-w-xl text-sm text-emerald-100/85 sm:text-base">
-                Filter by specs, scout the map, and connect with donors across the network. Listings update in real time as crews share what&apos;s available.
+                Filter by specs, scout the map, and connect with donors across
+                the network. Listings update in real time as crews share
+                what&apos;s available.
               </p>
               {!isAuthenticated && (
                 <div className="rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-emerald-100/90 backdrop-blur">
-                  Preview what&apos;s live, then create an account to save materials and coordinate pickups.
+                  Preview what&apos;s live, then create an account to save
+                  materials and coordinate pickups.
                 </div>
               )}
             </div>
             <div className="w-full max-w-xl rounded-3xl border border-white/15 bg-white/10 p-6 shadow-xl backdrop-blur">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-200">
-                Filters
-              </p>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 p-1 text-xs">
-                <button
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-200">
+                  Filters
+                </p>
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 p-1 text-xs">
+                  <button
                     type="button"
                     className={`rounded-full px-3 py-1 font-semibold transition ${
                       viewMode === "list"
@@ -334,6 +354,7 @@ export default function SearchPage() {
                     className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
                     value={type}
                     onChange={(e) => setType(e.target.value)}
+                    onKeyDown={handleFilterKeyDown}
                   >
                     {MATERIALS.map((m) => (
                       <option key={m} value={m}>
@@ -351,6 +372,7 @@ export default function SearchPage() {
                     placeholder="Search by title, description, or keywords"
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
+                    onKeyDown={handleFilterKeyDown}
                   />
                 </label>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -365,6 +387,7 @@ export default function SearchPage() {
                       className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
                       value={radius}
                       onChange={(e) => setRadius(e.target.value)}
+                      onKeyDown={handleFilterKeyDown}
                     />
                   </label>
                   <label className="flex flex-col gap-2">
@@ -376,6 +399,7 @@ export default function SearchPage() {
                       placeholder="Address or ZIP"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
+                      onKeyDown={handleFilterKeyDown}
                     />
                   </label>
                 </div>
@@ -409,7 +433,10 @@ export default function SearchPage() {
         </section>
 
         <section className="relative isolate overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950">
-          <div className="pointer-events-none absolute inset-0 opacity-25" aria-hidden>
+          <div
+            className="pointer-events-none absolute inset-0 opacity-25"
+            aria-hidden
+          >
             <div className="h-full w-full bg-[radial-gradient(circle_at_bottom_left,_rgba(52,211,153,0.3),_transparent_60%)]" />
           </div>
           <div className="relative mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
@@ -459,7 +486,8 @@ export default function SearchPage() {
                           {l.type} • {l.shape} • {l.count} pcs
                         </p>
                         <p className="text-xs text-emerald-100/70">
-                          Available until {l.available_until} • {l.location_text}
+                          Available until {l.available_until} •{" "}
+                          {l.location_text}
                         </p>
                       </div>
                       {owner && (
@@ -486,6 +514,7 @@ export default function SearchPage() {
                                   strokeWidth="1.25"
                                   className="h-5 w-5"
                                 >
+                                  <title>Profile icon</title>
                                   <circle cx="12" cy="8" r="4" />
                                   <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
                                 </svg>

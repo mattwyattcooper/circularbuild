@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { type FormEvent, useState } from "react";
+
 import AuthWall from "@/component/AuthWall";
 import ParallaxSection from "@/component/ParallaxSection";
 import { useRequireAuth } from "@/lib/useRequireAuth";
@@ -382,8 +384,15 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
                     onChange={(e) => setAgreed(e.target.checked)}
                   />
                   <span>
-                    I agree to the CircularBuild terms, confirm the listing is
-                    accurate, and understand donations are made in good faith.
+                    I agree to the CircularBuild{" "}
+                    <Link
+                      href="/terms"
+                      className="text-emerald-200 underline underline-offset-4 hover:text-emerald-100"
+                    >
+                      Terms &amp; Conditions
+                    </Link>
+                    , confirm the listing is accurate, and understand donations
+                    are made in good faith.
                   </span>
                 </label>
                 <label className="flex flex-col gap-2">

@@ -1,5 +1,4 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
@@ -20,19 +19,6 @@ function getTransport() {
     auth: { user, pass },
   });
 }
-
-type Participant = {
-  id: string;
-  name: string | null;
-  email: string | null;
-};
-
-type ChatInfo = {
-  id: string;
-  listing: { title: string | null } | null;
-  buyer: Participant | null;
-  seller: Participant | null;
-};
 
 export async function POST(request: Request) {
   try {
@@ -91,112 +77,83 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: message }, { status: 500 });
     }
 
-    const serviceUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (serviceUrl && serviceRoleKey) {
-      const adminClient = createClient(serviceUrl, serviceRoleKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      });
+    const { data: chatInfo } = await supabase
+      .from("chats")
+      .select("buyer_id, seller_id, listing:listings(title)")
+      .eq("id", chatId)
+      .maybeSingle();
 
-      const { data: chatInfo } = await adminClient
-        .from("chats")
-        .select(
-          "id, listing:listings(title), buyer:profiles!chats_buyer_id_fkey(id,name,email), seller:profiles!chats_seller_id_fkey(id,name,email)",
-        )
-        .eq("id", chatId)
-        .maybeSingle<ChatInfo>();
+    if (chatInfo) {
+      const participantIds = [chatInfo.buyer_id, chatInfo.seller_id].filter(
+        (id): id is string => Boolean(id && id !== userId),
+      );
 
-      if (chatInfo) {
-        const participants: Participant[] = [
-          chatInfo.buyer,
-          chatInfo.seller,
-        ].filter((p): p is Participant => Boolean(p?.id));
+      if (participantIds.length > 0) {
+        const { data: profileRows, error: profileError } = await supabase
+          .from("profiles")
+          .select("id,name,email")
+          .in("id", participantIds);
 
-        const recipients: Array<{ email: string; name: string }> = [];
+        if (profileError) {
+          console.error("Failed to load participant profiles", profileError);
+        } else {
+          const recipients = (profileRows ?? [])
+            .filter((row) => Boolean(row.email))
+            .map((row) => ({
+              email: row.email as string,
+              name: row.name ?? "CircularBuild member",
+            }));
 
-        for (const participantRecord of participants) {
-          if (participantRecord.id === userId) continue;
-          let recipientEmail = participantRecord.email?.trim() ?? "";
-          let recipientName = participantRecord.name ?? null;
-
-          if (!recipientEmail) {
-            try {
-              const { data, error } = await adminClient.auth.admin.getUserById(
-                participantRecord.id,
+          if (recipients.length > 0) {
+            const transporter = getTransport();
+            if (!transporter) {
+              console.error(
+                "Chat email skipped: SMTP credentials are not configured in the server environment.",
               );
-              if (!error && data?.user) {
-                recipientEmail = data.user.email ?? recipientEmail;
-                if (!recipientName) {
-                  const fullName = data.user.user_metadata?.full_name as
-                    | string
-                    | undefined;
-                  recipientName = fullName ?? null;
-                }
-              } else if (error) {
-                console.error("Failed to fetch participant email", error);
-              }
-            } catch (fetchError) {
-              console.error("Failed to fetch participant email", fetchError);
+            } else {
+              const senderName =
+                (session.user.user_metadata?.full_name as string | undefined) ??
+                "A CircularBuild member";
+              const listingTitle = chatInfo.listing?.title ?? "a listing";
+              const linkBase =
+                process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+                request.headers.get("origin") ||
+                "https://www.circularbuild.org";
+              const chatLink = `${linkBase}/chats/${chatId}`;
+
+              await Promise.all(
+                recipients.map(async ({ email, name }) => {
+                  try {
+                    const textBody = `Hi ${name},\n\n${senderName} just sent you a message about "${listingTitle}".\n\nOpen the chat to reply: ${chatLink}\n\n– CircularBuild`;
+                    const htmlBody = `
+                      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a;">
+                        <p>Hi ${name},</p>
+                        <p><strong>${senderName}</strong> just sent you a message about <em>${listingTitle}</em>.</p>
+                        <p style="margin: 20px 0;">
+                          <a href="${chatLink}" style="display: inline-block; padding: 12px 24px; background: #047857; color: #fff; border-radius: 9999px; text-decoration: none;">Open chat</a>
+                        </p>
+                        <p>Log in to CircularBuild to keep the conversation going.</p>
+                        <p style="margin-top: 32px; font-size: 12px; color: #475569;">
+                          If you weren’t expecting this message, contact support at <a href="mailto:contact@circularbuild.org">contact@circularbuild.org</a>.
+                        </p>
+                      </div>
+                    `;
+
+                    await transporter.sendMail({
+                      from:
+                        process.env.SMTP_FROM ??
+                        "CircularBuild <no-reply@circularbuild.org>",
+                      to: email,
+                      subject: `New message about ${listingTitle}`,
+                      text: textBody,
+                      html: htmlBody,
+                    });
+                  } catch (emailError) {
+                    console.error("Failed to send chat email", emailError);
+                  }
+                }),
+              );
             }
-          }
-
-          if (recipientEmail) {
-            recipients.push({
-              email: recipientEmail,
-              name: recipientName ?? "CircularBuild member",
-            });
-          }
-        }
-
-        if (recipients.length > 0) {
-          const transporter = getTransport();
-          if (!transporter) {
-            console.error(
-              "Chat email skipped: SMTP credentials are not configured in the server environment.",
-            );
-          } else {
-            const senderName =
-              (session.user.user_metadata?.full_name as string | undefined) ??
-              "A CircularBuild member";
-            const listingTitle = chatInfo.listing?.title ?? "a listing";
-            const linkBase =
-              process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-              request.headers.get("origin") ||
-              "https://www.circularbuild.org";
-            const chatLink = `${linkBase}/chats/${chatId}`;
-
-            await Promise.all(
-              recipients.map(async ({ email, name }) => {
-                try {
-                  const textBody = `Hi ${name},\n\n${senderName} just sent you a message about "${listingTitle}".\n\nOpen the chat to reply: ${chatLink}\n\n– CircularBuild`;
-                  const htmlBody = `
-                    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a;">
-                      <p>Hi ${name},</p>
-                      <p><strong>${senderName}</strong> just sent you a message about <em>${listingTitle}</em>.</p>
-                      <p style="margin: 20px 0;">
-                        <a href="${chatLink}" style="display: inline-block; padding: 12px 24px; background: #047857; color: #fff; border-radius: 9999px; text-decoration: none;">Open chat</a>
-                      </p>
-                      <p>Log in to CircularBuild to keep the conversation going.</p>
-                      <p style="margin-top: 32px; font-size: 12px; color: #475569;">
-                        If you weren’t expecting this message, contact support at <a href="mailto:contact@circularbuild.org">contact@circularbuild.org</a>.
-                      </p>
-                    </div>
-                  `;
-
-                  await transporter.sendMail({
-                    from:
-                      process.env.SMTP_FROM ??
-                      "CircularBuild <no-reply@circularbuild.org>",
-                    to: email,
-                    subject: `New message about ${listingTitle}`,
-                    text: textBody,
-                    html: htmlBody,
-                  });
-                } catch (emailError) {
-                  console.error("Failed to send chat email", emailError);
-                }
-              }),
-            );
           }
         }
       }
