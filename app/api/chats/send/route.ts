@@ -97,6 +97,11 @@ export async function POST(request: Request) {
         if (profileError) {
           console.error("Failed to load participant profiles", profileError);
         } else {
+          const listingData = Array.isArray(chatInfo.listing)
+            ? (chatInfo.listing[0] ?? null)
+            : (chatInfo.listing ?? null);
+          const listingTitle = listingData?.title ?? "a listing";
+
           const recipients = (profileRows ?? [])
             .filter((row) => Boolean(row.email))
             .map((row) => ({
@@ -114,7 +119,6 @@ export async function POST(request: Request) {
               const senderName =
                 (session.user.user_metadata?.full_name as string | undefined) ??
                 "A CircularBuild member";
-              const listingTitle = chatInfo.listing?.title ?? "a listing";
               const linkBase =
                 process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
                 request.headers.get("origin") ||
