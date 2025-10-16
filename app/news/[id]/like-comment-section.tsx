@@ -45,6 +45,19 @@ export default function LikeCommentSection({
   const [letterStatus, setLetterStatus] = useState("");
   const [letterSubmitting, setLetterSubmitting] = useState(false);
 
+  async function refreshLikes() {
+    const { data, error } = await supabase
+      .from("news_likes")
+      .select("user_id")
+      .eq("post_id", postId);
+    if (error) {
+      console.error("Failed to refresh likes", error);
+      return;
+    }
+    setLikesCount(data.length);
+    setLiked(data.some((row) => row.user_id === currentUserId));
+  }
+
   async function toggleLike() {
     if (!isAuthenticated) {
       setShowAuthPrompt(true);
@@ -72,6 +85,7 @@ export default function LikeCommentSection({
           .upsert({ post_id: postId, user_id: currentUserId });
         if (error) throw error;
       }
+      await refreshLikes();
     } catch (error) {
       console.error("Toggle like failed", error);
       setLiked(previousLiked);
