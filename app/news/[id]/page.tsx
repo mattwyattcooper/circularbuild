@@ -20,14 +20,11 @@ type NewsPost = {
   cover_image_url: string | null;
 };
 
-type CommentRow = {
+type CommentDisplay = {
   id: string;
   comment: string;
-  created_at: string;
-  user_id: string;
-  profiles: {
-    name: string | null;
-  } | null;
+  createdAt: string;
+  userName: string;
 };
 
 const markdownSchema: Schema = {
@@ -195,7 +192,6 @@ export default async function NewsDetailPage({
   }
 
   const readMinutes = estimateReadMinutes(post.body ?? "");
-  const isAuthenticated = true;
 
   const { data: likesRows } = await supabase
     .from("news_likes")
@@ -213,13 +209,17 @@ export default async function NewsDetailPage({
     .eq("post_id", post.id)
     .order("created_at", { ascending: true });
 
-  const comments = (commentRows ?? []).map((row: CommentRow) => ({
-    id: row.id,
-    comment: row.comment,
-    createdAt: row.created_at,
-    userId: row.user_id,
-    userName: row.profiles?.name ?? "CircularBuild member",
-  }));
+  const comments: CommentDisplay[] = (commentRows ?? []).map((row) => {
+    const profileEntry = Array.isArray(row.profiles)
+      ? (row.profiles[0] ?? null)
+      : (row.profiles ?? null);
+    return {
+      id: row.id,
+      comment: row.comment,
+      createdAt: row.created_at,
+      userName: profileEntry?.name ?? "CircularBuild member",
+    };
+  });
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -282,13 +282,8 @@ export default async function NewsDetailPage({
         postId={post.id}
         initialLikes={likesCount}
         initiallyLiked={likedByUser}
-        initialComments={comments.map((c) => ({
-          id: c.id,
-          comment: c.comment,
-          createdAt: c.createdAt,
-          userName: c.userName,
-        }))}
-        isAuthenticated={isAuthenticated}
+        initialComments={comments}
+        isAuthenticated={Boolean(session)}
         currentUserId={session.user.id}
         currentUserName={currentUserName}
         userEmail={userEmail}
