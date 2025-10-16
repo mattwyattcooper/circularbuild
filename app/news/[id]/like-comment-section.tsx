@@ -51,27 +51,31 @@ export default function LikeCommentSection({
       return;
     }
     if (likeLoading) return;
+    const previousLiked = liked;
+    const previousCount = likesCount;
     setLikeLoading(true);
     try {
-      if (liked) {
+      if (previousLiked) {
+        setLiked(false);
+        setLikesCount(Math.max(0, previousCount - 1));
         const { error } = await supabase
           .from("news_likes")
           .delete()
           .eq("post_id", postId)
           .eq("user_id", currentUserId);
         if (error) throw error;
-        setLiked(false);
-        setLikesCount((count) => Math.max(0, count - 1));
       } else {
+        setLiked(true);
+        setLikesCount(previousCount + 1);
         const { error } = await supabase
           .from("news_likes")
           .upsert({ post_id: postId, user_id: currentUserId });
         if (error) throw error;
-        setLiked(true);
-        setLikesCount((count) => count + 1);
       }
     } catch (error) {
       console.error("Toggle like failed", error);
+      setLiked(previousLiked);
+      setLikesCount(previousCount);
     } finally {
       setLikeLoading(false);
     }
