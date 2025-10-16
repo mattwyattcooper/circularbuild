@@ -12,6 +12,7 @@ function AuthPageInner() {
   const [name, setName] = useState("");
   const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [msg, setMsg] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const searchParams = useSearchParams();
   const nextPath = useMemo(() => {
     const value = searchParams?.get("next") || "/";
@@ -32,7 +33,10 @@ function AuthPageInner() {
             nextPath,
           }),
         });
-        const data = (await response.json()) as { error?: string; message?: string };
+        const data = (await response.json()) as {
+          error?: string;
+          message?: string;
+        };
         if (!response.ok) {
           throw new Error(data?.error || "Sign up failed.");
         }
@@ -72,7 +76,7 @@ function AuthPageInner() {
   }, []);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 text-slate-800">
+    <main className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow">
         <h1 className="mb-4 text-xl font-bold text-slate-900">Account</h1>
 
@@ -106,13 +110,23 @@ function AuthPageInner() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-            <input
-              className="w-full rounded-lg border px-3 py-2"
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="relative">
+              <input
+                className="w-full rounded-lg border px-3 py-2 pr-10"
+                type={passwordVisible ? "text" : "password"}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-sm text-gray-500 hover:text-gray-700"
+                onClick={() => setPasswordVisible((prev) => !prev)}
+                aria-label={passwordVisible ? "Hide password" : "Show password"}
+              >
+                {passwordVisible ? "Hide" : "Show"}
+              </button>
+            </div>
             <button
               type="button"
               className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-white"
@@ -142,7 +156,7 @@ export default function AuthPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-screen items-center justify-center bg-gray-50 text-slate-600">
+        <main className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-200">
           Loading account tools…
         </main>
       }

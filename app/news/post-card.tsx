@@ -70,7 +70,17 @@ export default function PostCard({
           </div>
         </div>
       )}
-      <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+      <button
+        type="button"
+        className="flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-emerald-100 bg-white text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+        onClick={() => {
+          if (!isAuthenticated) {
+            setShowAuthPrompt(true);
+            return;
+          }
+          router.push(`/news/${post.id}`);
+        }}
+      >
         {post.cover_image_url ? (
           <div className="relative aspect-[16/9] w-full">
             <Image
@@ -114,23 +124,13 @@ export default function PostCard({
                   Edit
                 </button>
               )}
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 font-semibold text-emerald-700 transition hover:bg-emerald-200"
-                onClick={() => {
-                  if (!isAuthenticated) {
-                    setShowAuthPrompt(true);
-                    return;
-                  }
-                  router.push(`/news/${post.id}`);
-                }}
-              >
+              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 font-semibold text-emerald-700">
                 Read briefing
-              </button>
+              </span>
             </div>
           </div>
         </div>
-      </article>
+      </button>
     </>
   );
 }

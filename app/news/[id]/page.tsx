@@ -8,6 +8,8 @@ import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 
+import LikeCommentSection from "./like-comment-section";
+
 export const dynamic = "force-dynamic";
 
 type NewsPost = {
@@ -16,6 +18,16 @@ type NewsPost = {
   body: string;
   created_at: string;
   cover_image_url: string | null;
+};
+
+type CommentRow = {
+  id: string;
+  comment: string;
+  created_at: string;
+  user_id: string;
+  profiles: {
+    name: string | null;
+  } | null;
 };
 
 const markdownSchema: Schema = {
@@ -183,6 +195,41 @@ export default async function NewsDetailPage({
   }
 
   const readMinutes = estimateReadMinutes(post.body ?? "");
+  const isAuthenticated = true;
+
+  const { data: likesRows } = await supabase
+    .from("news_likes")
+    .select("user_id")
+    .eq("post_id", post.id);
+
+  const likesCount = likesRows?.length ?? 0;
+  const likedByUser = Boolean(
+    likesRows?.some((row) => row.user_id === session.user.id),
+  );
+
+  const { data: commentRows } = await supabase
+    .from("news_comments")
+    .select("id, comment, created_at, user_id, profiles(name)")
+    .eq("post_id", post.id)
+    .order("created_at", { ascending: true });
+
+  const comments = (commentRows ?? []).map((row: CommentRow) => ({
+    id: row.id,
+    comment: row.comment,
+    createdAt: row.created_at,
+    userId: row.user_id,
+    userName: row.profiles?.name ?? "CircularBuild member",
+  }));
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("name")
+    .eq("id", session.user.id)
+    .maybeSingle();
+
+  const currentUserName =
+    profile?.name ?? session.user.email ?? "CircularBuild member";
+  const userEmail = session.user.email ?? "";
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-12">
@@ -230,6 +277,22 @@ export default async function NewsDetailPage({
           {post.body}
         </ReactMarkdown>
       </div>
+
+      <LikeCommentSection
+        postId={post.id}
+        initialLikes={likesCount}
+        initiallyLiked={likedByUser}
+        initialComments={comments.map((c) => ({
+          id: c.id,
+          comment: c.comment,
+          createdAt: c.createdAt,
+          userName: c.userName,
+        }))}
+        isAuthenticated={isAuthenticated}
+        currentUserId={session.user.id}
+        currentUserName={currentUserName}
+        userEmail={userEmail}
+      />
     </article>
   );
 }

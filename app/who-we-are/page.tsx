@@ -207,6 +207,34 @@ export default function WhoWeArePage() {
       </ParallaxSection>
 
       <ParallaxSection
+        imageSrc="https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=2400&q=80"
+        imageAlt="Stacks of reclaimed beams inside a warehouse"
+        overlayClassName="bg-emerald-950/65"
+        speed={0.26}
+        maxOffset={220}
+        flush
+      >
+        <div className="mx-auto flex min-h-[60vh] max-w-6xl flex-col justify-center gap-10 px-4 py-12 sm:px-6 md:py-16 lg:px-8">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {IMPACT_STATS.map((stat) => (
+              <article
+                key={stat.label}
+                className="rounded-3xl border border-white/20 bg-white/10 p-8 text-left shadow-lg backdrop-blur-lg"
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">
+                  {stat.label}
+                </p>
+                <p className="mt-6 text-4xl font-semibold text-white">
+                  {stat.value}
+                </p>
+                <p className="mt-4 text-xs text-emerald-100">{stat.source}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </ParallaxSection>
+
+      <ParallaxSection
         imageSrc="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=2400&q=80"
         imageAlt="Stacked reclaimed materials ready for distribution"
         overlayClassName="bg-emerald-950/65"
@@ -235,34 +263,6 @@ export default function WhoWeArePage() {
                 title={category.title}
                 description={category.description}
               />
-            ))}
-          </div>
-        </div>
-      </ParallaxSection>
-
-      <ParallaxSection
-        imageSrc="https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=2400&q=80"
-        imageAlt="Stacks of reclaimed beams inside a warehouse"
-        overlayClassName="bg-emerald-950/65"
-        speed={0.26}
-        maxOffset={220}
-        flush
-      >
-        <div className="mx-auto flex min-h-[60vh] max-w-6xl flex-col justify-center gap-10 px-4 py-12 sm:px-6 md:py-16 lg:px-8">
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {IMPACT_STATS.map((stat) => (
-              <article
-                key={stat.label}
-                className="rounded-3xl border border-white/20 bg-white/10 p-8 text-left shadow-lg backdrop-blur-lg"
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">
-                  {stat.label}
-                </p>
-                <p className="mt-6 text-4xl font-semibold text-white">
-                  {stat.value}
-                </p>
-                <p className="mt-4 text-xs text-emerald-100">{stat.source}</p>
-              </article>
             ))}
           </div>
         </div>
