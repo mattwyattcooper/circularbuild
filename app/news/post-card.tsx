@@ -119,7 +119,10 @@ export default function PostCard({
                 <button
                   type="button"
                   className="rounded-full border border-emerald-200 px-3 py-1 font-semibold text-emerald-700 hover:border-emerald-400"
-                  onClick={() => setEditing(true)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setEditing(true);
+                  }}
                 >
                   Edit
                 </button>
