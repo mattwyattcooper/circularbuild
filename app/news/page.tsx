@@ -35,7 +35,7 @@ function buildExcerpt(body: string, limit = 220) {
 }
 
 export default async function NewsPage() {
-  const supabase = getSupabaseAdminClient()!;
+  const supabase = getSupabaseAdminClient();
   const user = await getOptionalUser();
 
   const { data: postsData, error: postsErr } = await supabase
