@@ -13,6 +13,7 @@ function AuthPageInner() {
   const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [msg, setMsg] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const searchParams = useSearchParams();
   const nextPath = useMemo(() => {
     const value = searchParams?.get("next") || "/";
@@ -58,6 +59,33 @@ function AuthPageInner() {
       const message =
         error instanceof Error ? error.message : "Unexpected error";
       setMsg(`Error: ${message}`);
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    setMsg("");
+    try {
+      setGoogleLoading(true);
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : undefined;
+      const redirectTo = origin
+        ? `${origin}/auth${nextPath ? `?next=${encodeURIComponent(nextPath)}` : ""}`
+        : undefined;
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          queryParams: { prompt: "consent" },
+        },
+      });
+      if (error) throw error;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Google sign-in failed.";
+      setMsg(`Error: ${message}`);
+    } finally {
+      setGoogleLoading(false);
     }
   }
 
@@ -142,6 +170,47 @@ function AuthPageInner() {
               {mode === "signup"
                 ? "Already have an account? Sign in"
                 : "Need an account? Sign up"}
+            </button>
+
+            <div className="relative my-4 flex items-center">
+              <span className="flex-1 border-t border-gray-200" />
+              <span className="mx-3 text-xs uppercase tracking-[0.3em] text-gray-400">
+                or
+              </span>
+              <span className="flex-1 border-t border-gray-200" />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={googleLoading}
+              className="inline-flex w-full items-center justify-center gap-3 rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-500 hover:text-emerald-900 disabled:opacity-70"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 48 48"
+                className="h-5 w-5"
+                aria-hidden
+              >
+                <title>Google logo</title>
+                <path
+                  fill="#EA4335"
+                  d="M24 9.5c3.54 0 6 1.54 7.38 2.83l5.04-5.04C33.9 3.58 29.41 1.5 24 1.5 14.71 1.5 6.73 7.79 3.69 16.17l6.66 5.18C11.64 14.5 17.18 9.5 24 9.5z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M46.5 24.5c0-1.78-.15-3.5-.43-5.17h-22v9.79h12.67c-.55 2.91-2.21 5.39-4.67 7.05l7.12 5.52C43.85 37.88 46.5 31.73 46.5 24.5z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M10.35 28.35c-.5-1.45-.79-3-.79-4.6 0-1.61.29-3.15.78-4.6l-6.66-5.18C1.74 17.32.5 20.56.5 24c0 3.44 1.23 6.68 3.18 9.43l6.67-5.08z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M24 46.5c6.33 0 11.66-2.09 15.55-5.69l-7.12-5.52c-2 1.36-4.55 2.18-7.43 2.18-5.82 0-10.66-3.93-12.41-9.17l-6.67 5.08C6.73 40.21 14.71 46.5 24 46.5z"
+                />
+              </svg>
+              {googleLoading ? "Signing in…" : "Continue with Google"}
             </button>
           </div>
         )}
