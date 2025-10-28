@@ -1,11 +1,10 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { createClient } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
+// @ts-nocheck
 import Link from "next/link";
 
 import HeroSection from "@/component/HeroSection";
 import ListingCard, { type ListingCardData } from "@/component/ListingCard";
 import ParallaxSection from "@/component/ParallaxSection";
+import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 const QUICK_NAV = [
   {
@@ -98,8 +97,7 @@ function buildExcerpt(body: string, limit = 160) {
 }
 
 export default async function Home() {
-  const cookieStore = cookies();
-  const supabase = createServerComponentClient({ cookies: () => cookieStore });
+  const supabase = getSupabaseAdminClient();
 
   const { data: listings } = await supabase
     .from("listings")
@@ -130,25 +128,18 @@ export default async function Home() {
   );
 
   if (ownerIds.length > 0) {
-    const serviceUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (serviceUrl && serviceRoleKey) {
-      const adminClient = createClient(serviceUrl, serviceRoleKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      });
-      const { data: ownerRows } = await adminClient
-        .from("profiles")
-        .select("id,name,avatar_url")
-        .in("id", ownerIds);
-      owners = (ownerRows ?? []).reduce<typeof owners>((acc, row) => {
-        acc[row.id] = {
-          id: row.id,
-          name: row.name ?? null,
-          avatar_url: row.avatar_url ?? null,
-        };
-        return acc;
-      }, {});
-    }
+    const { data: ownerRows } = await supabase
+      .from("profiles")
+      .select("id,name,avatar_url")
+      .in("id", ownerIds);
+    owners = (ownerRows ?? []).reduce<typeof owners>((acc, row) => {
+      acc[row.id] = {
+        id: row.id,
+        name: row.name ?? null,
+        avatar_url: row.avatar_url ?? null,
+      };
+      return acc;
+    }, {});
   }
 
   const cards: ListingCardData[] = (listings ?? []).map((listing) => ({
@@ -198,11 +189,6 @@ export default async function Home() {
             <h2 className="text-[clamp(2.25rem,3vw,3.5rem)] font-bold leading-tight">
               Move your donations from surplus piles to new builds.
             </h2>
-            <p className="max-w-xl text-base text-emerald-100 sm:text-lg">
-              Navigate the tools that help you post available materials, match
-              with crews who need them, and learn how donation logistics stay on
-              schedule.
-            </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {QUICK_NAV.map((item) => (

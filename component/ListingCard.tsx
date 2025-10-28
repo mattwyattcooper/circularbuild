@@ -83,6 +83,7 @@ export default function ListingCard({ listing }: Props) {
                       strokeWidth="1.25"
                       className="h-5 w-5"
                     >
+                      <title>Profile icon</title>
                       <circle cx="12" cy="8" r="4" />
                       <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
                     </svg>
@@ -95,18 +96,18 @@ export default function ListingCard({ listing }: Props) {
             </Link>
           )}
           <div>
-          {listing.footer ? (
-            listing.footer
-          ) : (
-            <Link
-              href={`/listing/${listing.id}`}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 transition hover:text-emerald-700"
-            >
-              View details
-              <span aria-hidden>→</span>
-            </Link>
-          )}
-        </div>
+            {listing.footer ? (
+              listing.footer
+            ) : (
+              <Link
+                href={`/listing/${listing.id}`}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 transition hover:text-emerald-700"
+              >
+                View details
+                <span aria-hidden>→</span>
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </article>

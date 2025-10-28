@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
-import { supabase } from "@/lib/supabaseClient";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type Profile = {
@@ -39,44 +38,45 @@ export default function AccountSettingsPage() {
   useEffect(() => {
     if (authStatus !== "authenticated") return;
     (async () => {
-      const { data: sess } = await supabase.auth.getSession();
-      const uid = sess.session?.user.id;
-      if (!uid) return;
-
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("id,name,is_admin,gender,age,interests,bio,avatar_url")
-        .eq("id", uid)
-        .maybeSingle();
-      if (profileData) {
-        setProfile(profileData);
-        setName(profileData.name ?? "");
-        setGender(profileData.gender ?? "");
-        setAge(
-          typeof profileData.age === "number" && !Number.isNaN(profileData.age)
-            ? String(profileData.age)
-            : "",
-        );
-        setInterests(profileData.interests ?? "");
-        setBio(profileData.bio ?? "");
-        setAvatarUrl(profileData.avatar_url ?? null);
+      try {
+        const response = await fetch("/api/account/profile");
+        if (response.status === 401) {
+          setProfile(null);
+          setStats(null);
+          return;
+        }
+        const data = (await response.json()) as {
+          profile?: Profile | null;
+          stats?: { activeListings: number; wishlistCount: number };
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(data?.error ?? "Unable to load profile");
+        }
+        if (data.profile) {
+          const profileData = data.profile;
+          setProfile(profileData);
+          setName(profileData.name ?? "");
+          setGender(profileData.gender ?? "");
+          setAge(
+            typeof profileData.age === "number" &&
+              !Number.isNaN(profileData.age)
+              ? String(profileData.age)
+              : "",
+          );
+          setInterests(profileData.interests ?? "");
+          setBio(profileData.bio ?? "");
+          setAvatarUrl(profileData.avatar_url ?? null);
+        }
+        if (data.stats) {
+          setStats(data.stats);
+        }
+      } catch (error) {
+        console.error(error);
+        const message =
+          error instanceof Error ? error.message : "Unable to load profile";
+        setMsg(`Error loading profile: ${message}`);
       }
-
-      const { data: listings } = await supabase
-        .from("listings")
-        .select("id")
-        .eq("owner_id", uid)
-        .eq("status", "active");
-
-      const { data: wishlist } = await supabase
-        .from("wishlists")
-        .select("id")
-        .eq("user_id", uid);
-
-      setStats({
-        activeListings: listings?.length ?? 0,
-        wishlistCount: wishlist?.length ?? 0,
-      });
     })();
   }, [authStatus]);
 
@@ -131,21 +131,20 @@ export default function AccountSettingsPage() {
     setAvatarUploading(true);
     setMsg("");
     try {
-      const { data: sess } = await supabase.auth.getSession();
-      const uid = sess.session?.user.id;
-      if (!uid) throw new Error("Session expired.");
-
-      const extension = file.name.split(".").pop() ?? "jpg";
-      const filePath = `avatars/${uid}-${Date.now()}.${extension}`;
-      const { error: uploadError } = await supabase.storage
-        .from("profile-photos")
-        .upload(filePath, file, { upsert: true });
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from("profile-photos")
-        .getPublicUrl(filePath);
-      setAvatarUrl(data.publicUrl);
+      const avatarData = new FormData();
+      avatarData.append("avatar", file, file.name);
+      const response = await fetch("/api/profile/avatar", {
+        method: "POST",
+        body: avatarData,
+      });
+      const data = (await response.json()) as {
+        avatarUrl?: string;
+        error?: string;
+      };
+      if (!response.ok || !data.avatarUrl) {
+        throw new Error(data?.error ?? "Unable to upload avatar");
+      }
+      setAvatarUrl(data.avatarUrl);
       setMsg("Avatar updated.");
     } catch (error) {
       console.error(error);

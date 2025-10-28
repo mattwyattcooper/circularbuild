@@ -6,7 +6,6 @@ import { type FormEvent, useState } from "react";
 import AuthWall from "@/component/AuthWall";
 import ParallaxSection from "@/component/ParallaxSection";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { supabase } from "../../lib/supabaseClient";
 
 const MATERIALS = [
   "Wood",
@@ -56,9 +55,6 @@ export default function DonatePage() {
     setMsg("");
     setSubmitting(true);
     try {
-      const { data: sess } = await supabase.auth.getSession();
-      if (!sess.session) throw new Error("Please sign in first (top-right).");
-
       if (!title.trim()) throw new Error("Title is required.");
       if (!shape.trim()) throw new Error("Shape is required.");
       if (!available)
@@ -85,23 +81,6 @@ export default function DonatePage() {
       const lat = g?.lat ?? null;
       const lng = g?.lng ?? null;
 
-      const photoUrls: string[] = [];
-      if (files?.length) {
-        for (const file of Array.from(files)) {
-          const safeName = file.name.replace(/[^\w.-]/g, "_");
-          const key = `u_${sess.session.user.id}/${Date.now()}_${safeName}`;
-          const { error: upErr } = await supabase.storage
-            .from("listing-photos")
-            .upload(key, file, { upsert: false });
-          if (upErr) throw upErr;
-
-          const { data } = supabase.storage
-            .from("listing-photos")
-            .getPublicUrl(key);
-          photoUrls.push(data.publicUrl);
-        }
-      }
-
       const piecesCount = Number.isFinite(count) && count > 0 ? count : 1;
       const detailedDescription = `${description.trim()}
 
@@ -110,23 +89,38 @@ Donor declaration: Information provided is truthful.
 Signer: ${signature.trim()}
 Consented to contact: ${consentContact ? "Yes" : "No"}`;
 
-      const { error: insErr } = await supabase.from("listings").insert({
-        owner_id: sess.session.user.id,
-        title,
-        type,
-        shape,
-        count: piecesCount,
-        available_until: availableISO,
-        location_text: locationText,
-        lat,
-        lng,
-        description: detailedDescription,
-        photos: photoUrls,
-        status: "active",
-      });
-      if (insErr) throw insErr;
+      const formData = new FormData();
+      formData.append("title", title.trim());
+      formData.append("type", type);
+      formData.append("shape", shape.trim());
+      formData.append("count", String(piecesCount));
+      formData.append("availableUntil", availableISO);
+      formData.append("locationText", locationText.trim());
+      formData.append("description", detailedDescription);
+      formData.append("signature", signature.trim());
+      formData.append("consentContact", String(consentContact));
+      if (lat != null) formData.append("lat", String(lat));
+      if (lng != null) formData.append("lng", String(lng));
 
-      setMsg("✅ Listing published.");
+      if (files?.length) {
+        for (const file of Array.from(files)) {
+          formData.append("photos", file, file.name);
+        }
+      }
+
+      const response = await fetch("/api/listings", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        message?: string;
+      };
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Unable to publish listing.");
+      }
+
+      setMsg(payload?.message ?? "✅ Listing published.");
       setTitle("");
       setType(MATERIALS[0]);
       setShape("");

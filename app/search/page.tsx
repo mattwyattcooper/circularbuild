@@ -8,7 +8,6 @@ import type { KeyboardEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
-import { supabase } from "@/lib/supabaseClient";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 const ListingMap = dynamic(() => import("@/component/ListingMap"), {
@@ -83,20 +82,25 @@ export default function SearchPage() {
 
   const fetchWishlist = useCallback(async () => {
     setWishlistMsg("");
-    const { data: sess } = await supabase.auth.getSession();
-    const uid = sess.session?.user.id;
-    if (!uid) return;
-    const { data, error } = await supabase
-      .from("wishlists")
-      .select("listing_id")
-      .eq("user_id", uid);
-    if (error) {
-      setWishlistMsg(
-        `Could not load wishlist.${error.message ? ` (${error.message})` : ""}`,
-      );
-      return;
+    try {
+      const response = await fetch("/api/wishlist");
+      if (response.status === 401) {
+        setWishlistIds(new Set());
+        return;
+      }
+      const data = (await response.json()) as {
+        listingIds?: string[];
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Unable to load wishlist");
+      }
+      setWishlistIds(new Set(data.listingIds ?? []));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to load wishlist";
+      setWishlistMsg(`Could not load wishlist. ${message}`);
     }
-    setWishlistIds(new Set((data ?? []).map((row) => row.listing_id)));
   }, []);
 
   const router = useRouter();
@@ -206,41 +210,30 @@ export default function SearchPage() {
       });
       return;
     }
-    const { data: sess } = await supabase.auth.getSession();
-    const uid = sess.session?.user.id;
-    if (!uid) {
-      setAuthPrompt({
-        message: "Sign in to save materials to your wishlist.",
-        nextPath: "/search",
-      });
-      return;
-    }
     const isSaved = wishlistIds.has(listingId);
-    if (isSaved) {
-      const { error } = await supabase
-        .from("wishlists")
-        .delete()
-        .eq("user_id", uid)
-        .eq("listing_id", listingId);
-      if (error) {
-        setWishlistMsg(`Could not update wishlist: ${error.message}`);
-        return;
+    try {
+      const response = await fetch("/api/wishlist", {
+        method: isSaved ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId }),
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Unable to update wishlist");
       }
       setWishlistIds((prev) => {
         const next = new Set(prev);
-        next.delete(listingId);
+        if (isSaved) {
+          next.delete(listingId);
+        } else {
+          next.add(listingId);
+        }
         return next;
       });
-    } else {
-      const { error } = await supabase.from("wishlists").insert({
-        user_id: uid,
-        listing_id: listingId,
-      });
-      if (error) {
-        setWishlistMsg(`Could not update wishlist: ${error.message}`);
-        return;
-      }
-      setWishlistIds((prev) => new Set(prev).add(listingId));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to update wishlist";
+      setWishlistMsg(`Could not update wishlist: ${message}`);
     }
   };
 

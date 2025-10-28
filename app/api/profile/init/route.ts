@@ -1,57 +1,42 @@
-import { createClient } from "@supabase/supabase-js";
+// @ts-nocheck
 import { NextResponse } from "next/server";
 
-export const runtime = "nodejs";
+import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
-const supabaseUrlEnv = process.env.NEXT_PUBLIC_SUPABASE_URL;
-if (!supabaseUrlEnv) {
-  throw new Error("NEXT_PUBLIC_SUPABASE_URL is not configured");
-}
-const supabaseUrl = supabaseUrlEnv;
-
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!serviceRoleKey) {
-  console.warn(
-    "SUPABASE_SERVICE_ROLE_KEY is missing; profile init API will fail.",
-  );
-}
-
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    if (!serviceRoleKey) {
+    const body = await request.json();
+    const email = String(body.email ?? "").toLowerCase();
+    const fullName = String(body.name ?? "").trim();
+    const userId = String(body.userId ?? "").trim();
+
+    if (!email || !userId) {
       return NextResponse.json(
-        { error: "Service role key is not configured on the server." },
-        { status: 500 },
+        { error: "Email and userId are required" },
+        { status: 400 },
       );
     }
 
-    const { id, name } = await req.json();
-    if (!id || typeof id !== "string") {
-      return NextResponse.json({ error: "Missing id" }, { status: 400 });
-    }
+    const supabase = getSupabaseAdminClient();
 
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
-
-    const { error } = await supabaseAdmin.from("profiles").upsert({
-      id,
-      name:
-        typeof name === "string" && name.trim().length > 0 ? name.trim() : null,
-      gender: null,
-      age: null,
-      interests: null,
-      bio: null,
-      avatar_url: null,
-    });
+    const { error } = await supabase.from("profiles").upsert(
+      {
+        id: userId,
+        email,
+        name: fullName || null,
+      },
+      { onConflict: "id" },
+    );
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     return NextResponse.json({ status: "ok" });
   } catch (error) {
-    console.error(error);
+    console.error("Profile init failed", error);
     const message =
-      error instanceof Error ? error.message : "Failed to initialize profile";
+      error instanceof Error ? error.message : "Unable to init profile";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

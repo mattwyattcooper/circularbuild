@@ -3,11 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import { cleanListingDescription } from "@/lib/cleanListingDescription";
-import { supabase } from "@/lib/supabaseClient";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type ListingOwner = {
@@ -39,6 +39,7 @@ export default function ListingDetail() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const authStatus = useRequireAuth();
+  const { status: sessionStatus } = useSession();
   const [l, setL] = useState<Listing | null>(null);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(true);
@@ -54,6 +55,7 @@ export default function ListingDetail() {
         const res = await fetch(`/api/listings/${params.id}`);
         const payload = (await res.json()) as {
           listing?: Listing;
+          isSaved?: boolean;
           error?: string;
         };
         if (!res.ok || !payload.listing) {
@@ -64,21 +66,7 @@ export default function ListingDetail() {
         }
         if (!active) return;
         setL(payload.listing);
-
-        const { data: sess } = await supabase.auth.getSession();
-        const uid = sess.session?.user.id;
-        if (uid) {
-          const { data: wish } = await supabase
-            .from("wishlists")
-            .select("id")
-            .eq("user_id", uid)
-            .eq("listing_id", params.id)
-            .maybeSingle();
-          if (!active) return;
-          setSaved(Boolean(wish));
-        } else {
-          setSaved(false);
-        }
+        setSaved(Boolean(payload.isSaved));
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Unable to load listing";
@@ -98,10 +86,11 @@ export default function ListingDetail() {
   async function contact() {
     setMsg("");
     try {
-      const { data: sess } = await supabase.auth.getSession();
-      if (!sess.session) {
-        // redirect to sign in if not signed in
-        return router.push("/auth");
+      if (sessionStatus !== "authenticated") {
+        router.push(
+          `/auth?next=${encodeURIComponent(`/listing/${params?.id ?? ""}`)}`,
+        );
+        return;
       }
       if (!l) throw new Error("Listing not loaded");
 
@@ -131,29 +120,22 @@ export default function ListingDetail() {
   async function toggleWishlist() {
     setMsg("");
     try {
-      const { data: sess } = await supabase.auth.getSession();
-      const uid = sess.session?.user.id;
-      if (!uid) {
+      if (sessionStatus !== "authenticated") {
         window.alert("Please sign in first.");
         return;
       }
       if (!l) return;
-      if (saved) {
-        const { error } = await supabase
-          .from("wishlists")
-          .delete()
-          .eq("user_id", uid)
-          .eq("listing_id", l.id);
-        if (error) throw error;
-        setSaved(false);
-      } else {
-        const { error } = await supabase.from("wishlists").insert({
-          user_id: uid,
-          listing_id: l.id,
-        });
-        if (error) throw error;
-        setSaved(true);
+      const method = saved ? "DELETE" : "POST";
+      const response = await fetch("/api/wishlist", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId: l.id }),
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Unable to update wishlist.");
       }
+      setSaved(!saved);
     } catch (error) {
       console.error(error);
       const message = error instanceof Error ? error.message : "";

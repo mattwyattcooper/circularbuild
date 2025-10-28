@@ -10,7 +10,7 @@ import PostForm from "./post-form";
 type Post = {
   id: string;
   title: string;
-  body: string;
+  body: string | null;
   created_at: string;
   cover_image_url: string | null;
   author_id: string | null;

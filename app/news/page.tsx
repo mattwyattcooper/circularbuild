@@ -1,12 +1,21 @@
 // app/news/page.tsx
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { getOptionalUser } from "@/lib/auth/session";
+import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 import NewsNotificationPrompt from "./notification-prompt";
 import PostCard from "./post-card";
 import PostForm from "./post-form";
 
 export const dynamic = "force-dynamic";
+
+type NewsPostRow = {
+  id: string;
+  title: string;
+  body: string | null;
+  created_at: string;
+  cover_image_url: string | null;
+  author_id: string | null;
+};
 
 function estimateReadMinutes(body: string) {
   const words = body.trim().split(/\s+/).filter(Boolean);
@@ -26,29 +35,28 @@ function buildExcerpt(body: string, limit = 220) {
 }
 
 export default async function NewsPage() {
-  const cookieStore = cookies();
-  const supabase = createServerComponentClient({ cookies: () => cookieStore });
+  const supabase = getSupabaseAdminClient()!;
+  const user = await getOptionalUser();
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  const isAuthenticated = Boolean(session);
-
-  const { data: posts, error: postsErr } = await supabase
+  const { data: postsData, error: postsErr } = await supabase
     .from("news_posts")
     .select("id, title, body, created_at, cover_image_url, author_id")
     .order("created_at", { ascending: false });
 
+  const posts = (postsData ?? []) as NewsPostRow[];
+
   let isAdmin = false;
-  if (session?.user?.id) {
+  if (user?.id) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("is_admin")
-      .eq("id", session.user.id)
-      .single();
-    isAdmin = Boolean(profile?.is_admin);
+      .eq("id", user.id)
+      .maybeSingle();
+    const profileRow = profile as { is_admin: boolean | null } | null;
+    isAdmin = Boolean(profileRow?.is_admin);
   }
+
+  const isAuthenticated = Boolean(user);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-10">
@@ -113,7 +121,7 @@ export default async function NewsPage() {
         {(posts ?? []).map((post) => {
           const readMinutes = estimateReadMinutes(post.body ?? "");
           const excerpt = buildExcerpt(post.body ?? "");
-          const canEdit = isAdmin || post.author_id === session?.user?.id;
+          const canEdit = isAdmin || post.author_id === user?.id;
           return (
             <PostCard
               key={post.id}

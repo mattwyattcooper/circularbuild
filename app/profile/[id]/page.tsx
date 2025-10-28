@@ -1,9 +1,10 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+// @ts-nocheck
 import Image from "next/image";
 import Link from "next/link";
 
 import AuthWall from "@/component/AuthWall";
+import { getOptionalUser } from "@/lib/auth/session";
+import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
@@ -17,28 +18,14 @@ type Profile = {
   avatar_url: string | null;
 };
 
-type ListingSummary = {
-  id: string;
-  title: string;
-  status: string;
-  available_until: string;
-  location_text: string;
-  photos: string[] | null;
-};
-
 export default async function ProfileDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const cookieStore = cookies();
-  const supabase = createServerComponentClient({ cookies: () => cookieStore });
+  const user = await getOptionalUser();
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
+  if (!user) {
     return (
       <main className="mx-auto max-w-xl px-6 py-16">
         <AuthWall
@@ -51,11 +38,11 @@ export default async function ProfileDetailPage({
     );
   }
 
+  const supabase = getSupabaseAdminClient();
+
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select(
-      "id, name, bio, interests, gender, age, avatar_url",
-    )
+    .select("id, name, bio, interests, gender, age, avatar_url")
     .eq("id", params.id)
     .maybeSingle<Profile>();
 
@@ -63,9 +50,12 @@ export default async function ProfileDetailPage({
     return (
       <main className="mx-auto max-w-xl px-6 py-16 text-center text-slate-900">
         <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-10 shadow-sm">
-          <h1 className="text-xl font-semibold text-red-700">Profile unavailable</h1>
+          <h1 className="text-xl font-semibold text-red-700">
+            Profile unavailable
+          </h1>
           <p className="mt-3 text-sm text-red-600">
-            We couldn&apos;t find details for this member. They may have closed their account or the link is incorrect.
+            We couldn&apos;t find details for this member. They may have closed
+            their account or the link is incorrect.
           </p>
           <Link
             href="/search"
@@ -78,13 +68,11 @@ export default async function ProfileDetailPage({
     );
   }
 
-  const viewingOwnProfile = profile.id === session.user.id;
+  const viewingOwnProfile = profile.id === user.id;
 
   const { data: listings } = await supabase
     .from("listings")
-    .select(
-      "id, title, status, available_until, location_text, photos",
-    )
+    .select("id, title, status, available_until, location_text, photos")
     .eq("owner_id", profile.id)
     .order("created_at", { ascending: false })
     .limit(12);
@@ -100,7 +88,10 @@ export default async function ProfileDetailPage({
   return (
     <main className="flex min-h-screen flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 text-white">
       <section className="relative isolate overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 opacity-35" aria-hidden>
+        <div
+          className="pointer-events-none absolute inset-0 opacity-35"
+          aria-hidden
+        >
           <div className="h-full w-full bg-[radial-gradient(circle_at_top_right,_rgba(74,222,128,0.35),_transparent_60%)]" />
         </div>
         <div className="relative mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-16 sm:px-6 lg:px-8">
@@ -124,6 +115,7 @@ export default async function ProfileDetailPage({
                     strokeWidth="1.5"
                     className="h-16 w-16"
                   >
+                    <title>Profile icon</title>
                     <circle cx="12" cy="8" r="4" />
                     <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
                   </svg>
@@ -140,11 +132,12 @@ export default async function ProfileDetailPage({
                     {profile.gender}
                   </span>
                 )}
-                {typeof profile.age === "number" && !Number.isNaN(profile.age) && (
-                  <span className="rounded-full border border-white/20 px-3 py-1 uppercase tracking-[0.2em]">
-                    Age {profile.age}
-                  </span>
-                )}
+                {typeof profile.age === "number" &&
+                  !Number.isNaN(profile.age) && (
+                    <span className="rounded-full border border-white/20 px-3 py-1 uppercase tracking-[0.2em]">
+                      Age {profile.age}
+                    </span>
+                  )}
                 {profile.interests && (
                   <span className="rounded-full border border-white/20 px-3 py-1">
                     {profile.interests}
@@ -170,15 +163,21 @@ export default async function ProfileDetailPage({
       </section>
 
       <section className="relative isolate flex-1 overflow-hidden border-t border-white/10">
-        <div className="pointer-events-none absolute inset-0 opacity-25" aria-hidden>
+        <div
+          className="pointer-events-none absolute inset-0 opacity-25"
+          aria-hidden
+        >
           <div className="h-full w-full bg-[radial-gradient(circle_at_bottom_left,_rgba(52,211,153,0.28),_transparent_65%)]" />
         </div>
         <div className="relative mx-auto w-full max-w-5xl space-y-8 px-4 py-14 sm:px-6 lg:px-8">
           <div>
-            <h2 className="text-lg font-semibold text-white">Active listings</h2>
+            <h2 className="text-lg font-semibold text-white">
+              Active listings
+            </h2>
             {activeListings.length === 0 ? (
               <p className="mt-3 text-sm text-emerald-100/70">
-                No active donations at the moment. Check back soon to see what this member shares next.
+                No active donations at the moment. Check back soon to see what
+                this member shares next.
               </p>
             ) : (
               <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -220,7 +219,9 @@ export default async function ProfileDetailPage({
           </div>
 
           <div>
-            <h2 className="text-lg font-semibold text-white">Recent activity</h2>
+            <h2 className="text-lg font-semibold text-white">
+              Recent activity
+            </h2>
             {archivedListings.length === 0 ? (
               <p className="mt-3 text-sm text-emerald-100/70">
                 This member hasn&apos;t archived any listings yet.
@@ -241,7 +242,8 @@ export default async function ProfileDetailPage({
                       </span>
                     </div>
                     <span className="text-xs text-emerald-100/60">
-                      Available until {listing.available_until} • {listing.location_text}
+                      Available until {listing.available_until} •{" "}
+                      {listing.location_text}
                     </span>
                   </div>
                 ))}

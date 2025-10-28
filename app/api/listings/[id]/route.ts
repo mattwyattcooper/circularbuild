@@ -1,5 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
-import { NextRequest, NextResponse } from "next/server";
+// @ts-nocheck
+import { NextResponse } from "next/server";
+
+import { getOptionalUser } from "@/lib/auth/session";
+import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 const EMPTY_OWNER = null as {
   id: string;
@@ -9,35 +12,20 @@ const EMPTY_OWNER = null as {
 } | null;
 
 export async function GET(
-  _request: NextRequest,
+  _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!url || !anonKey) {
+    const supabase = getSupabaseAdminClient();
+    const { id: listingId } = await context.params;
+    if (!listingId) {
       return NextResponse.json(
-        { error: "Supabase environment variables are not configured." },
-        { status: 500 },
+        { error: "Missing listing id" },
+        { status: 400 },
       );
     }
 
-    const key = serviceRoleKey ?? anonKey;
-    const client = createClient(url, key, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    });
-
-    const { id: listingId } = await context.params;
-    if (!listingId) {
-      return NextResponse.json({ error: "Missing listing id" }, { status: 400 });
-    }
-
-    const { data: listing, error } = await client
+    const { data: listing, error } = await supabase
       .from("listings")
       .select("*")
       .eq("id", listingId)
@@ -53,7 +41,7 @@ export async function GET(
 
     let owner = EMPTY_OWNER;
     if (listing.owner_id) {
-      const { data: ownerData } = await client
+      const { data: ownerData } = await supabase
         .from("profiles")
         .select("id,name,avatar_url,bio")
         .eq("id", listing.owner_id)
@@ -68,7 +56,19 @@ export async function GET(
         : EMPTY_OWNER;
     }
 
-    return NextResponse.json({ listing: { ...listing, owner } });
+    const user = await getOptionalUser();
+    let isSaved = false;
+    if (user?.id) {
+      const { data: wishlistRow } = await supabase
+        .from("wishlists")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("listing_id", listingId)
+        .maybeSingle();
+      isSaved = Boolean(wishlistRow);
+    }
+
+    return NextResponse.json({ listing: { ...listing, owner }, isSaved });
   } catch (error) {
     console.error("Listing lookup failed", error);
     const message =

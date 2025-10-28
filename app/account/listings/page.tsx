@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import ParallaxSection from "@/component/ParallaxSection";
-import { supabase } from "@/lib/supabaseClient";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type ListingRow = {
@@ -42,26 +41,30 @@ export default function MyListingsPage() {
   const loadListings = useCallback(async () => {
     setLoading(true);
     setMsg("");
-    const { data: sess } = await supabase.auth.getSession();
-    const uid = sess.session?.user.id;
-    if (!uid) {
-      setLoading(false);
-      return;
-    }
-    const { data, error } = await supabase
-      .from("listings")
-      .select(
-        "id,title,type,shape,count,available_until,status,created_at,description",
-      )
-      .eq("owner_id", uid)
-      .order("created_at", { ascending: false });
-    if (error) {
-      setMsg(`Failed to load listings: ${error.message}`);
+    try {
+      const response = await fetch("/api/account/listings");
+      if (response.status === 401) {
+        setRows([]);
+        setLoading(false);
+        return;
+      }
+      const data = (await response.json()) as {
+        listings?: ListingRow[];
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Unable to load listings");
+      }
+      setRows(data.listings ?? []);
+    } catch (error) {
+      console.error(error);
+      const message =
+        error instanceof Error ? error.message : "Unable to load listings";
+      setMsg(`Failed to load listings: ${message}`);
       setRows([]);
-    } else {
-      setRows(data as ListingRow[]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -81,15 +84,19 @@ export default function MyListingsPage() {
   async function saveEdit(id: string) {
     setMsg("");
     try {
-      const { error } = await supabase
-        .from("listings")
-        .update({
+      const response = await fetch(`/api/account/listings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           available_until: draft.available_until,
           count: draft.count,
           description: draft.description,
-        })
-        .eq("id", id);
-      if (error) throw error;
+        }),
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Unable to update listing");
+      }
       setEditing(null);
       await loadListings();
       setMsg("Listing updated.");
@@ -115,15 +122,15 @@ export default function MyListingsPage() {
         );
         if (!confirmed) return;
       }
-      const { error } = await supabase
-        .from("listings")
-        .update({ status })
-        .eq("id", id);
-      if (error) throw error;
-      await supabase
-        .from("chats")
-        .update({ is_active: status === "active" })
-        .eq("listing_id", id);
+      const response = await fetch(`/api/account/listings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Unable to update listing");
+      }
       await loadListings();
       setMsg(
         status === "procured"

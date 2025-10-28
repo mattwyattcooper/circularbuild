@@ -1,13 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
 
 type Post = {
   id?: string;
   title?: string;
-  body?: string;
+  body?: string | null;
   cover_image_url?: string | null;
 };
 
@@ -38,6 +38,7 @@ export default function PostForm({ post, onSuccess, onCancel }: Props) {
   const [msg, setMsg] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
+  const { status } = useSession();
 
   useEffect(() => {
     setTitle(post?.title ?? "");
@@ -49,35 +50,45 @@ export default function PostForm({ post, onSuccess, onCancel }: Props) {
     setMsg("");
     setSubmitting(true);
     try {
-      const { data: sess } = await supabase.auth.getSession();
-      const uid = sess.session?.user.id;
-      if (!uid) throw new Error("Please sign in again.");
+      if (status !== "authenticated") {
+        throw new Error("Please sign in again.");
+      }
       if (!title.trim()) throw new Error("Title is required.");
       if (!body.trim()) throw new Error("Body is required.");
 
+      const payload = {
+        title: title.trim(),
+        body: body.trim(),
+        coverImageUrl: coverImageUrl.trim() || null,
+      };
+
+      const endpoint = isEditing
+        ? `/api/news/posts/${post?.id}`
+        : "/api/news/posts";
+      const method = isEditing ? "PUT" : "POST";
+
+      const response = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await response.json()) as {
+        message?: string;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Unable to save post.");
+      }
+
       if (isEditing) {
-        const { error } = await supabase
-          .from("news_posts")
-          .update({
-            title: title.trim(),
-            body: body.trim(),
-            cover_image_url: coverImageUrl.trim() || null,
-          })
-          .eq("id", post?.id);
-        if (error) throw error;
-        setMsg("Post updated.");
+        setMsg(data?.message ?? "Post updated.");
       } else {
-        const { error } = await supabase.from("news_posts").insert({
-          title: title.trim(),
-          body: body.trim(),
-          cover_image_url: coverImageUrl.trim() || null,
-          author_id: uid,
-        });
-        if (error) throw error;
         setTitle("");
         setBody("");
         setCoverImageUrl("");
-        setMsg("Post published.");
+        setMsg(data?.message ?? "Post published.");
       }
 
       onSuccess?.();

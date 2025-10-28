@@ -3,21 +3,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
-import type { RealtimeChannel } from "@supabase/supabase-js";
-
-import { supabase } from "../lib/supabaseClient";
 
 export default function Header() {
-  const [email, setEmail] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState<string | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [hasUnreadChats, setHasUnreadChats] = useState(false);
+  const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const unreadChannelRef = useRef<RealtimeChannel | null>(null);
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [hasUnreadChats, setHasUnreadChats] = useState(false);
 
   const navItems: Array<{
     label: string;
@@ -32,6 +30,7 @@ export default function Header() {
       label: "Chats",
       href: "/chats",
       match: (cur) => cur.startsWith("/chats"),
+      requiresAuth: true,
     },
     { label: "News", href: "/news" },
     { label: "FAQs", href: "/faqs" },
@@ -39,92 +38,63 @@ export default function Header() {
   ];
 
   useEffect(() => {
-    async function init() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const userId = session?.user?.id ?? null;
-      setEmail(session?.user?.email ?? null);
-      if (userId) {
-        void loadProfile(userId);
-        void refreshUnread(userId);
-        attachUnreadSubscription(userId);
-      } else {
-        setDisplayName(null);
-        setAvatarUrl(null);
-        setHasUnreadChats(false);
-        attachUnreadSubscription(null);
+    let cancelled = false;
+
+    async function loadAccountSummary() {
+      if (status !== "authenticated") {
+        if (!cancelled) {
+          setDisplayName(null);
+          setAvatarUrl(null);
+          setHasUnreadChats(false);
+        }
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/me", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`Failed to load account summary: ${response.status}`);
+        }
+        const payload = (await response.json()) as {
+          profile?: { name: string | null; avatar_url: string | null };
+          hasUnreadChats?: boolean;
+        };
+
+        if (!cancelled) {
+          setDisplayName(
+            payload.profile?.name ??
+              session?.user?.name ??
+              session?.user?.email ??
+              null,
+          );
+          setAvatarUrl(payload.profile?.avatar_url ?? null);
+          setHasUnreadChats(Boolean(payload.hasUnreadChats));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error(error);
+          setHasUnreadChats(false);
+        }
       }
     }
 
-    void init();
+    void loadAccountSummary();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      const userId = session?.user?.id ?? null;
-      setEmail(session?.user?.email ?? null);
-      if (userId) {
-        void loadProfile(userId);
-        void refreshUnread(userId);
-        attachUnreadSubscription(userId);
-      } else {
-        setDisplayName(null);
-        setAvatarUrl(null);
-        setHasUnreadChats(false);
-        attachUnreadSubscription(null);
-      }
-    });
+    if (status !== "authenticated") {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const interval = window.setInterval(() => {
+      void loadAccountSummary();
+    }, 30000);
+
     return () => {
-      sub.subscription.unsubscribe();
-      attachUnreadSubscription(null);
+      cancelled = true;
+      window.clearInterval(interval);
     };
-  }, []);
-
-  async function loadProfile(userId: string) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("name,avatar_url")
-      .eq("id", userId)
-      .maybeSingle();
-    setDisplayName(data?.name ?? null);
-    setAvatarUrl(data?.avatar_url ?? null);
-  }
-
-  async function refreshUnread(userId: string) {
-    const { data } = await supabase
-      .from("chat_participants")
-      .select("has_unread")
-      .eq("user_id", userId)
-      .eq("has_unread", true)
-      .limit(1)
-      .maybeSingle();
-    setHasUnreadChats(Boolean(data?.has_unread));
-  }
-
-  function attachUnreadSubscription(userId: string | null) {
-    if (unreadChannelRef.current) {
-      void unreadChannelRef.current.unsubscribe();
-      unreadChannelRef.current = null;
-    }
-    if (!userId) return;
-
-    const channel = supabase
-      .channel(`chat-participants-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "chat_participants",
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          void refreshUnread(userId);
-        },
-      )
-      .subscribe();
-
-    unreadChannelRef.current = channel;
-  }
+  }, [status, session?.user?.name, session?.user?.email]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -141,6 +111,8 @@ export default function Header() {
       window.removeEventListener("mousedown", handleClick);
     };
   }, [menuOpen]);
+
+  const email = session?.user?.email ?? null;
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
@@ -170,6 +142,8 @@ export default function Header() {
             const isActive = item.match
               ? item.match(pathname)
               : pathname === item.href;
+            const requiresAuth = Boolean(item.requiresAuth);
+            const isAuthed = status === "authenticated";
             const baseClasses =
               "rounded-full px-3 py-2 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
             const activeClasses = isActive
@@ -181,7 +155,7 @@ export default function Header() {
                 key={item.href}
                 type="button"
                 onClick={() => {
-                  if (item.requiresAuth && !email) {
+                  if (requiresAuth && !isAuthed) {
                     router.push(`/auth?next=${encodeURIComponent(item.href)}`);
                     return;
                   }
@@ -200,7 +174,7 @@ export default function Header() {
             );
           })}
 
-          {email ? (
+          {status === "authenticated" && email ? (
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
@@ -225,6 +199,7 @@ export default function Header() {
                       strokeWidth="1.25"
                       className="h-full w-full p-1 text-emerald-50"
                     >
+                      <title>Profile icon</title>
                       <circle cx="12" cy="8" r="4" />
                       <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
                     </svg>
@@ -259,9 +234,8 @@ export default function Header() {
                     type="button"
                     className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
                     onClick={async () => {
-                      await supabase.auth.signOut();
+                      await signOut({ callbackUrl: "/" });
                       setMenuOpen(false);
-                      router.push("/");
                     }}
                   >
                     Log out

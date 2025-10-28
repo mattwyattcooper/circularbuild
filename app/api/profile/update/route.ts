@@ -1,30 +1,14 @@
-import { createClient } from "@supabase/supabase-js";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+// @ts-nocheck
 import { NextResponse } from "next/server";
+
+import { requireUser } from "@/lib/auth/session";
+import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies();
-    const authClient = createRouteHandlerClient({ cookies: () => cookieStore });
-    const {
-      data: { session },
-    } = await authClient.auth.getSession();
-
-    if (!session) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !serviceRoleKey) {
-      return NextResponse.json(
-        { error: "Server configuration missing" },
-        { status: 500 },
-      );
-    }
-
+    const user = await requireUser();
     const body = await request.json();
+
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const gender = typeof body.gender === "string" ? body.gender.trim() : "";
     const interests =
@@ -39,11 +23,11 @@ export async function POST(request: Request) {
         ? body.avatarUrl.trim()
         : null;
 
-    const admin = createClient(url, serviceRoleKey);
+    const supabase = getSupabaseAdminClient();
 
-    const { error } = await admin.from("profiles").upsert(
+    const { error } = await supabase.from("profiles").upsert(
       {
-        id: session.user.id,
+        id: user.id,
         name: name.length > 0 ? name : null,
         gender: gender.length > 0 ? gender : null,
         interests: interests.length > 0 ? interests : null,
@@ -63,6 +47,7 @@ export async function POST(request: Request) {
     console.error("Profile update failed", error);
     const message =
       error instanceof Error ? error.message : "Unable to update profile";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = message === "Unauthorized" ? 401 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

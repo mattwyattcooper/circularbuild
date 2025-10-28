@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import ParallaxSection from "@/component/ParallaxSection";
-import { supabase } from "@/lib/supabaseClient";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type SavedListing = {
@@ -43,24 +42,21 @@ export default function WishlistPage() {
     if (authStatus !== "authenticated") return;
     (async () => {
       setLoading(true);
-      const { data: sess } = await supabase.auth.getSession();
-      const uid = sess.session?.user.id;
-      if (!uid) {
-        setLoading(false);
-        return;
-      }
-      const { data, error } = await supabase
-        .from("wishlists")
-        .select(
-          "id, listing_id, created_at, listing:listings(id, title, type, shape, status, location_text, available_until, photos)",
-        )
-        .eq("user_id", uid)
-        .order("created_at", { ascending: false });
-      if (error) {
-        setMsg(`Could not load wishlist: ${error.message}`);
-        setRows([]);
-      } else {
-        const normalized = (data ?? []).map((row: WishlistRow) => {
+      try {
+        const response = await fetch("/api/account/wishlist");
+        if (response.status === 401) {
+          setRows([]);
+          setLoading(false);
+          return;
+        }
+        const data = (await response.json()) as {
+          rows?: WishlistRow[];
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(data?.error ?? "Unable to load wishlist");
+        }
+        const normalized = (data.rows ?? []).map((row) => {
           const listingValue = Array.isArray(row.listing)
             ? (row.listing[0] ?? null)
             : (row.listing ?? null);
@@ -72,26 +68,37 @@ export default function WishlistPage() {
           } satisfies SavedListing;
         });
         setRows(normalized);
+      } catch (error) {
+        console.error(error);
+        const message =
+          error instanceof Error ? error.message : "Unable to load wishlist";
+        setMsg(`Could not load wishlist: ${message}`);
+        setRows([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, [authStatus]);
 
   async function remove(listingId: string) {
     setMsg("");
-    const { data: sess } = await supabase.auth.getSession();
-    const uid = sess.session?.user.id;
-    if (!uid) return;
-    const { error } = await supabase
-      .from("wishlists")
-      .delete()
-      .eq("user_id", uid)
-      .eq("listing_id", listingId);
-    if (error) {
-      setMsg(`Unable to remove: ${error.message}`);
-      return;
+    try {
+      const response = await fetch("/api/wishlist", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId }),
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Unable to update wishlist");
+      }
+      setRows((prev) => prev.filter((row) => row.listing_id !== listingId));
+    } catch (error) {
+      console.error(error);
+      const message =
+        error instanceof Error ? error.message : "Unable to remove";
+      setMsg(`Unable to remove: ${message}`);
     }
-    setRows((prev) => prev.filter((row) => row.listing_id !== listingId));
   }
 
   if (authStatus === "checking") {

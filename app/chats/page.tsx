@@ -2,12 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import ParallaxSection from "@/component/ParallaxSection";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { supabase } from "../../lib/supabaseClient";
 
 type Chat = {
   id: string;
@@ -41,151 +41,87 @@ type ChatRow = Chat & {
 
 export default function ChatsIndex() {
   const authStatus = useRequireAuth();
+  const { data: session } = useSession();
   const [rows, setRows] = useState<ChatRow[]>([]);
   const [msg, setMsg] = useState("");
-  const chatIdsRef = useRef<Set<string>>(new Set());
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (authStatus !== "authenticated") return;
 
-    const subscriptions: Array<() => void> = [];
+    let cancelled = false;
 
-    const init = async () => {
-      const { data: sess } = await supabase.auth.getSession();
-      const uid = sess.session?.user.id ?? null;
-      if (!uid) return;
-
-      await refreshChats(uid);
-
-      const channel = supabase
-        .channel(`chat-updates-${uid}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "chat_participants",
-            filter: `user_id=eq.${uid}`,
-          },
-          () => {
-            void refreshChats(uid);
-          },
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "messages",
-          },
-          (payload) => {
-            const chatId = (payload.new as { chat_id?: string }).chat_id;
-            if (chatId && chatIdsRef.current.has(chatId)) {
-              void refreshChats(uid);
-            }
-          },
-        )
-        .subscribe();
-
-      subscriptions.push(() => {
-        void channel.unsubscribe();
-      });
+    const load = async () => {
+      try {
+        const response = await fetch("/api/chats", { cache: "no-store" });
+        if (response.status === 401) {
+          if (!cancelled) setRows([]);
+          return;
+        }
+        const data = (await response.json()) as {
+          chats?: Array<Chat & { listing: Listing | null }>;
+          unread?: Record<string, boolean>;
+          counterparties?: Record<
+            string,
+            { id: string; name: string | null; avatar_url: string | null }
+          >;
+          latest?: Record<string, { lastMessageAt: string | null }>;
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(data?.error ?? "Unable to load chats");
+        }
+        const viewerId = session?.user?.id ?? null;
+        const hydrated: ChatRow[] = (data.chats ?? []).map((chat) => {
+          const counterpartyId = viewerId
+            ? chat.buyer_id === viewerId
+              ? chat.seller_id
+              : chat.buyer_id
+            : null;
+          return {
+            ...chat,
+            listing: chat.listing ?? null,
+            counterparty:
+              counterpartyId && data.counterparties?.[counterpartyId]
+                ? {
+                    id: counterpartyId,
+                    name: data.counterparties[counterpartyId].name,
+                    avatar_url: data.counterparties[counterpartyId].avatar_url,
+                    bio: null,
+                  }
+                : null,
+            has_unread: data.unread?.[chat.id] ?? false,
+            last_read_at: null,
+            last_message_at:
+              data.latest?.[chat.id]?.lastMessageAt ??
+              chat.last_message_at ??
+              null,
+          };
+        });
+        if (!cancelled) {
+          setRows(hydrated);
+        }
+      } catch (error) {
+        console.error(error);
+        if (!cancelled) {
+          const message =
+            error instanceof Error ? error.message : "Unable to load chats";
+          setMsg(`Error: ${message}`);
+        }
+      }
     };
 
-    void init();
+    void load();
+    pollRef.current = setInterval(load, 20000);
 
     return () => {
-      subscriptions.forEach((unsubscribe) => unsubscribe());
+      cancelled = true;
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
     };
-  }, [authStatus]);
-
-  async function refreshChats(userId: string) {
-    const { data: chats, error } = await supabase
-      .from("chats")
-      .select("*")
-      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
-      .not("last_message_at", "is", null)
-      .order("last_message_at", { ascending: false });
-
-    if (error) {
-      setMsg(`Error: ${error.message}`);
-      return;
-    }
-
-    const chatRows = chats ?? [];
-    chatIdsRef.current = new Set(chatRows.map((chat) => chat.id));
-
-    if (chatRows.length === 0) {
-      setRows([]);
-      return;
-    }
-
-    const listingIds = Array.from(new Set(chatRows.map((c) => c.listing_id)));
-    const counterpartyIds = Array.from(
-      new Set(chatRows.map((c) => (c.buyer_id === userId ? c.seller_id : c.buyer_id))),
-    ).filter(Boolean) as string[];
-
-    const listingMap = new Map<string, Listing>();
-    if (listingIds.length > 0) {
-      const { data: listingData } = await supabase
-        .from("listings")
-        .select("id,title,photos")
-        .in("id", listingIds);
-      (listingData ?? []).forEach((item) => {
-        listingMap.set(item.id, {
-          id: item.id,
-          title: item.title,
-          photos: item.photos ?? null,
-        });
-      });
-    }
-
-    const profileMap = new Map<string, ProfileSummary>();
-    if (counterpartyIds.length > 0) {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("id,name,avatar_url,bio")
-        .in("id", counterpartyIds);
-      (profileData ?? []).forEach((p) => {
-        profileMap.set(p.id, {
-          id: p.id,
-          name: p.name ?? null,
-          avatar_url: p.avatar_url ?? null,
-          bio: p.bio ?? null,
-        });
-      });
-    }
-
-    const { data: participantRows } = await supabase
-      .from("chat_participants")
-      .select("chat_id,has_unread,last_read_at")
-      .eq("user_id", userId)
-      .in(
-        "chat_id",
-        chatRows.map((chat) => chat.id),
-      );
-    const participantMap = new Map<string, { has_unread: boolean; last_read_at: string | null }>();
-    (participantRows ?? []).forEach((row) => {
-      participantMap.set(row.chat_id, {
-        has_unread: row.has_unread,
-        last_read_at: row.last_read_at,
-      });
-    });
-
-    const hydrated: ChatRow[] = chatRows.map((chat) => {
-      const counterpartyId = chat.buyer_id === userId ? chat.seller_id : chat.buyer_id;
-      const participant = participantMap.get(chat.id);
-      return {
-        ...chat,
-        listing: listingMap.get(chat.listing_id) ?? null,
-        counterparty: counterpartyId ? profileMap.get(counterpartyId) ?? null : null,
-        has_unread: participant?.has_unread ?? false,
-        last_read_at: participant?.last_read_at ?? null,
-      };
-    });
-
-    setRows(hydrated);
-  }
+  }, [authStatus, session?.user?.id]);
 
   if (authStatus === "checking") {
     return (
@@ -284,19 +220,20 @@ export default function ChatsIndex() {
                         className="h-18 w-18 rounded-2xl object-cover"
                       />
                     ) : (
-                    <div className="grid h-18 w-18 place-items-center rounded-2xl border border-white/20 bg-white/10 text-emerald-100/70">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.25"
-                        className="h-10 w-10"
-                      >
-                        <circle cx="12" cy="8" r="4" />
-                        <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
-                      </svg>
-                    </div>
+                      <div className="grid h-18 w-18 place-items-center rounded-2xl border border-white/20 bg-white/10 text-emerald-100/70">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.25"
+                          className="h-10 w-10"
+                        >
+                          <title>Profile icon</title>
+                          <circle cx="12" cy="8" r="4" />
+                          <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
+                        </svg>
+                      </div>
                     )}
                     <div className="flex-1 space-y-2">
                       <div>
@@ -320,19 +257,20 @@ export default function ChatsIndex() {
                                 className="h-10 w-10 object-cover"
                               />
                             ) : (
-                            <div className="grid h-10 w-10 place-items-center text-emerald-100/70">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.25"
-                                className="h-7 w-7"
-                              >
-                                <circle cx="12" cy="8" r="4" />
-                                <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
-                              </svg>
-                            </div>
+                              <div className="grid h-10 w-10 place-items-center text-emerald-100/70">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.25"
+                                  className="h-7 w-7"
+                                >
+                                  <title>Profile icon</title>
+                                  <circle cx="12" cy="8" r="4" />
+                                  <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
+                                </svg>
+                              </div>
                             )}
                           </div>
                           <div className="flex flex-col">

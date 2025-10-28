@@ -1,7 +1,8 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { createClient } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
+// @ts-nocheck
 import { NextResponse } from "next/server";
+
+import { requireUser } from "@/lib/auth/session";
+import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 type RequestBody = {
   listingId?: string;
@@ -23,18 +24,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    const userId = session.user.id;
+    const user = await requireUser();
+    const supabase = getSupabaseAdminClient();
 
     const { data: listing, error: listingError } = await supabase
       .from("listings")
@@ -65,7 +56,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (sellerId === userId) {
+    if (sellerId === user.id) {
       return NextResponse.json(
         { error: "You cannot start a chat with your own listing." },
         { status: 400 },
@@ -76,7 +67,7 @@ export async function POST(request: Request) {
       .from("chats")
       .select("id")
       .eq("listing_id", listingId)
-      .eq("buyer_id", userId)
+      .eq("buyer_id", user.id)
       .eq("seller_id", sellerId)
       .maybeSingle<{ id: string }>();
 
@@ -95,7 +86,7 @@ export async function POST(request: Request) {
         .from("chats")
         .insert({
           listing_id: listingId,
-          buyer_id: userId,
+          buyer_id: user.id,
           seller_id: sellerId,
         })
         .select("id")
@@ -112,42 +103,29 @@ export async function POST(request: Request) {
       chatId = created.id;
     }
 
-    const serviceUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (serviceUrl && serviceRoleKey) {
-      const adminClient = createClient(serviceUrl, serviceRoleKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      });
-
-      const timestamp = new Date().toISOString();
-      const { error: participantError } = await adminClient
-        .from("chat_participants")
-        .upsert(
-          [
-            {
-              chat_id: chatId,
-              user_id: userId,
-              has_unread: false,
-              last_read_at: timestamp,
-            },
-            {
-              chat_id: chatId,
-              user_id: sellerId,
-              has_unread: false,
-              last_read_at: null,
-            },
-          ],
-          { ignoreDuplicates: true },
-        );
-
-      if (participantError) {
-        console.error("Failed to upsert chat participants", participantError);
-      }
-    } else {
-      console.warn(
-        "Missing Supabase service role credentials; skipped participant sync",
+    const timestamp = new Date().toISOString();
+    const { error: participantError } = await supabase
+      .from("chat_participants")
+      .upsert(
+        [
+          {
+            chat_id: chatId,
+            user_id: user.id,
+            has_unread: false,
+            last_read_at: timestamp,
+          },
+          {
+            chat_id: chatId,
+            user_id: sellerId,
+            has_unread: false,
+            last_read_at: null,
+          },
+        ],
+        { ignoreDuplicates: true },
       );
+
+    if (participantError) {
+      console.error("Failed to upsert chat participants", participantError);
     }
 
     return NextResponse.json({ chatId });

@@ -3,7 +3,6 @@
 import { useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
-import { supabase } from "@/lib/supabaseClient";
 
 type Comment = {
   id: string;
@@ -18,7 +17,6 @@ type Props = {
   initiallyLiked: boolean;
   initialComments: Comment[];
   isAuthenticated: boolean;
-  currentUserId: string;
   currentUserName: string;
   userEmail: string;
 };
@@ -29,7 +27,6 @@ export default function LikeCommentSection({
   initiallyLiked,
   initialComments,
   isAuthenticated,
-  currentUserId,
   currentUserName,
   userEmail,
 }: Props) {
@@ -45,51 +42,30 @@ export default function LikeCommentSection({
   const [letterStatus, setLetterStatus] = useState("");
   const [letterSubmitting, setLetterSubmitting] = useState(false);
 
-  async function refreshLikes() {
-    const { data, error } = await supabase
-      .from("news_likes")
-      .select("user_id")
-      .eq("post_id", postId);
-    if (error) {
-      console.error("Failed to refresh likes", error);
-      return;
-    }
-    setLikesCount(data.length);
-    setLiked(data.some((row) => row.user_id === currentUserId));
-  }
-
   async function toggleLike() {
     if (!isAuthenticated) {
       setShowAuthPrompt(true);
       return;
     }
     if (likeLoading) return;
-    const previousLiked = liked;
-    const previousCount = likesCount;
     setLikeLoading(true);
+    const method = liked ? "DELETE" : "POST";
     try {
-      if (previousLiked) {
-        setLiked(false);
-        setLikesCount(Math.max(0, previousCount - 1));
-        const { error } = await supabase
-          .from("news_likes")
-          .delete()
-          .eq("post_id", postId)
-          .eq("user_id", currentUserId);
-        if (error) throw error;
-      } else {
-        setLiked(true);
-        setLikesCount(previousCount + 1);
-        const { error } = await supabase
-          .from("news_likes")
-          .upsert({ post_id: postId, user_id: currentUserId });
-        if (error) throw error;
+      const response = await fetch(`/api/news/posts/${postId}/like`, {
+        method,
+      });
+      const data = (await response.json()) as {
+        likes?: number;
+        liked?: boolean;
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Unable to update like");
       }
-      await refreshLikes();
+      setLikesCount(data.likes ?? likesCount);
+      setLiked(Boolean(data.liked));
     } catch (error) {
       console.error("Toggle like failed", error);
-      setLiked(previousLiked);
-      setLikesCount(previousCount);
     } finally {
       setLikeLoading(false);
     }
@@ -104,25 +80,19 @@ export default function LikeCommentSection({
     if (!body) return;
     setCommentSubmitting(true);
     try {
-      const { data, error } = await supabase
-        .from("news_comments")
-        .insert({
-          post_id: postId,
-          user_id: currentUserId,
-          comment: body,
-        })
-        .select("id, comment, created_at")
-        .single();
-      if (error) throw error;
-      setComments((prev) => [
-        ...prev,
-        {
-          id: data.id,
-          comment: data.comment,
-          createdAt: data.created_at,
-          userName: currentUserName,
-        },
-      ]);
+      const response = await fetch(`/api/news/posts/${postId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment: body }),
+      });
+      const data = (await response.json()) as {
+        comment?: Comment;
+        error?: string;
+      };
+      if (!response.ok || !data.comment) {
+        throw new Error(data?.error ?? "Unable to add comment");
+      }
+      setComments((prev) => (data.comment ? [...prev, data.comment] : prev));
       setCommentText("");
     } catch (error) {
       console.error("Add comment failed", error);
@@ -202,145 +172,121 @@ export default function LikeCommentSection({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-emerald-100 bg-emerald-50/60 px-5 py-4">
         <button
           type="button"
           className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
             liked
-              ? "bg-emerald-600 text-white hover:bg-emerald-500"
-              : "border border-emerald-300 text-emerald-700 hover:border-emerald-500 hover:text-emerald-800"
+              ? "bg-emerald-600 text-white shadow"
+              : "bg-white text-emerald-700 hover:bg-emerald-100"
           }`}
           onClick={toggleLike}
           disabled={likeLoading}
         >
+          <span aria-hidden>{liked ? "★" : "☆"}</span>
           {liked ? "Liked" : "Like"}
-          <span className="text-xs font-normal">({likesCount})</span>
         </button>
-
+        <span className="text-sm text-emerald-800">
+          {likesCount} {likesCount === 1 ? "person" : "people"} appreciate this
+          story
+        </span>
         <button
           type="button"
-          className="rounded-full border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-500 hover:text-emerald-800"
-          onClick={() => {
-            if (!isAuthenticated) {
-              setShowAuthPrompt(true);
-              return;
-            }
-            setLetterOpen(true);
-          }}
+          className="ml-auto text-xs font-semibold uppercase tracking-[0.3em] text-emerald-600 hover:text-emerald-700"
+          onClick={() => setLetterOpen((prev) => !prev)}
         >
-          A Letter to the Editor
+          {letterOpen ? "Close letter" : "Letter to the editor"}
         </button>
-      </div>
-
-      <div>
-        <h2 className="text-lg font-semibold text-emerald-800">Comments</h2>
-        <div className="mt-4 space-y-4">
-          {comments.length === 0 ? (
-            <p className="text-sm text-gray-500">
-              No comments yet. Share your perspective to start the discussion.
-            </p>
-          ) : (
-            comments.map((comment) => (
-              <div
-                key={comment.id}
-                className="rounded-2xl border border-emerald-100 bg-white/80 px-4 py-3"
-              >
-                <p className="text-sm font-semibold text-emerald-800">
-                  {comment.userName}
-                </p>
-                <p className="mt-1 text-sm text-gray-700">{comment.comment}</p>
-                <p className="mt-2 text-xs text-gray-500">
-                  {new Date(comment.createdAt).toLocaleString()}
-                </p>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="mt-6 space-y-3">
-          <label
-            className="block text-sm font-semibold text-emerald-800"
-            htmlFor="comment-text"
-          >
-            Add a comment
-          </label>
-          <textarea
-            className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            id="comment-text"
-            rows={4}
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            placeholder="Share your reaction or a resource for fellow readers."
-          />
-          <div className="flex justify-end">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 disabled:bg-emerald-400"
-              onClick={submitComment}
-              disabled={commentSubmitting || commentText.trim().length === 0}
-            >
-              {commentSubmitting ? "Posting…" : "Post comment"}
-            </button>
-          </div>
-        </div>
       </div>
 
       {letterOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-lg space-y-4 rounded-3xl border border-white/20 bg-white/95 p-6 text-sm text-slate-900 shadow-2xl">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-emerald-800">
-                  Letter to the Editor
-                </h3>
-                <p className="text-xs text-gray-600">
-                  Share feedback or a story idea. We read every note.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="text-sm font-semibold text-emerald-700 hover:text-emerald-900"
-                onClick={() => {
-                  setLetterOpen(false);
-                  setLetterStatus("");
-                }}
-              >
-                Close
-              </button>
-            </div>
-            <textarea
-              className="min-h-[160px] w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              value={letterBody}
-              onChange={(e) => setLetterBody(e.target.value)}
-              placeholder="Tell us what resonated, what we missed, or what you’re seeing in the field."
-            />
-            {letterStatus && (
-              <div className="text-xs text-emerald-700">{letterStatus}</div>
-            )}
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                className="rounded-full border border-emerald-300 px-4 py-2 text-xs font-semibold text-emerald-700 transition hover:border-emerald-500 hover:text-emerald-900"
-                onClick={() => {
-                  setLetterOpen(false);
-                  setLetterStatus("");
-                }}
-                disabled={letterSubmitting}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500 disabled:bg-emerald-400"
-                onClick={submitLetter}
-                disabled={letterSubmitting}
-              >
-                {letterSubmitting ? "Sending…" : "Send letter"}
-              </button>
-            </div>
+        <div className="rounded-2xl border border-emerald-100 bg-white p-4">
+          <h3 className="text-sm font-semibold text-emerald-700">
+            Send feedback to the CircularBuild newsroom
+          </h3>
+          <textarea
+            className="mt-3 min-h-[120px] w-full rounded-xl border border-emerald-100 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+            placeholder="Share your takeaways, ask a follow-up question, or suggest a future story."
+            value={letterBody}
+            onChange={(event) => setLetterBody(event.target.value)}
+          />
+          <div className="mt-3 flex items-center justify-between text-xs text-emerald-700">
+            <span>
+              From {currentUserName || userEmail || "a CircularBuild supporter"}
+            </span>
+            <button
+              type="button"
+              className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white shadow transition hover:bg-emerald-500 disabled:opacity-60"
+              onClick={submitLetter}
+              disabled={letterSubmitting}
+            >
+              {letterSubmitting ? "Sending…" : "Send letter"}
+            </button>
           </div>
+          {letterStatus && (
+            <p className="mt-2 text-xs text-emerald-700">{letterStatus}</p>
+          )}
         </div>
       )}
+
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-700">
+          Community discussion
+        </h3>
+        {comments.length === 0 ? (
+          <p className="rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-800">
+            Be the first to share your thoughts about this briefing.
+          </p>
+        ) : (
+          <ul className="space-y-4">
+            {comments.map((item) => (
+              <li
+                key={item.id}
+                className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
+              >
+                <div className="flex items-center justify-between text-xs text-emerald-500">
+                  <span>{item.userName}</span>
+                  <time dateTime={item.createdAt}>
+                    {new Date(item.createdAt).toLocaleString()}
+                  </time>
+                </div>
+                <p className="mt-2 leading-relaxed text-gray-700">
+                  {item.comment}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+        <h4 className="text-sm font-semibold text-emerald-700">
+          Add a comment
+        </h4>
+        <textarea
+          className="mt-3 w-full rounded-xl border border-emerald-100 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+          placeholder="Share a reaction, resource, or related case study."
+          value={commentText}
+          onChange={(event) => setCommentText(event.target.value)}
+        />
+        <div className="mt-3 flex justify-end gap-2 text-xs">
+          <button
+            type="button"
+            className="rounded-full border border-emerald-200 px-4 py-2 text-emerald-600 hover:border-emerald-300 hover:text-emerald-700"
+            onClick={() => setCommentText("")}
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            className="rounded-full bg-emerald-600 px-4 py-2 text-white disabled:opacity-60"
+            onClick={submitComment}
+            disabled={commentSubmitting}
+          >
+            {commentSubmitting ? "Posting…" : "Post comment"}
+          </button>
+        </div>
+      </div>
     </section>
   );
 }
