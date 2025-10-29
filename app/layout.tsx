@@ -22,6 +22,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
   return (
     <html lang="en">
+      <head>
+        <meta
+          name="google-site-verification"
+          content="nUfsdRRUlmedpIwVe8EXirWjwwzHHHo6gIej64ZpbYI"
+        />
+      </head>
       <body className="flex min-h-screen flex-col bg-white text-slate-900">
         <Providers>
           <Header />

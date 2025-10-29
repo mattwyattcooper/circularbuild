@@ -69,6 +69,8 @@ export default function ChatPage() {
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportFiles, setReportFiles] = useState<File[]>([]);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const messageCountRef = useRef<number>(0);
+  const initialLoadRef = useRef(true);
   const reportFileInputRef = useRef<HTMLInputElement | null>(null);
   const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
   const pollRef = useRef<NodeJS.Timeout | null>(null);
@@ -88,6 +90,9 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (authStatus !== "authenticated" || !chatId || !userId) return;
+
+    initialLoadRef.current = true;
+    messageCountRef.current = 0;
 
     let cancelled = false;
 
@@ -124,8 +129,20 @@ export default function ChatPage() {
               null);
           setBuyerProfile(buyerValue);
           setSellerProfile(sellerValue);
-          setMessages(data.messages ?? []);
-          setTimeout(scrollToBottom, 0);
+          const nextMessages = data.messages ?? [];
+          const nextCount = nextMessages.length;
+
+          setMessages(nextMessages);
+
+          const shouldAutoScroll =
+            initialLoadRef.current || nextCount > messageCountRef.current;
+
+          if (shouldAutoScroll) {
+            setTimeout(scrollToBottom, 0);
+          }
+
+          initialLoadRef.current = false;
+          messageCountRef.current = nextCount;
           await markChatRead();
         }
       } catch (error) {
@@ -168,7 +185,10 @@ export default function ChatPage() {
       const reload = await fetch(`/api/chats/${chatId}`, { cache: "no-store" });
       const payload = (await reload.json()) as { messages?: Message[] };
       if (reload.ok && payload.messages) {
-        setMessages(payload.messages);
+        const nextMessages = payload.messages;
+        const nextCount = nextMessages.length;
+        setMessages(nextMessages);
+        messageCountRef.current = nextCount;
         setTimeout(scrollToBottom, 0);
       }
     } catch (error) {
