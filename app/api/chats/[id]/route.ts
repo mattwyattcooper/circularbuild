@@ -22,9 +22,7 @@ export async function GET(
       .select(
         `id, listing_id, buyer_id, seller_id, is_active, created_at,
          listing:listings(id,title,photos,location_text),
-         participants:chat_participants(user_id,has_unread,last_read_at),
-         buyer:profiles!chats_buyer_id_fkey(id,name,avatar_url,bio),
-         seller:profiles!chats_seller_id_fkey(id,name,avatar_url,bio)`,
+         participants:chat_participants(user_id,has_unread,last_read_at)`,
       )
       .eq("id", chatId)
       .maybeSingle();
@@ -40,6 +38,36 @@ export async function GET(
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
+    const profileIds = [chat.buyer_id, chat.seller_id].filter(
+      (identifier): identifier is string => Boolean(identifier),
+    );
+
+    let profiles: Array<{
+      id: string;
+      name: string | null;
+      avatar_url: string | null;
+      bio: string | null;
+    }> = [];
+
+    if (profileIds.length > 0) {
+      const { data: profileRows, error: profileError } = await supabase
+        .from("profiles")
+        .select("id,name,avatar_url,bio")
+        .in("id", profileIds);
+      if (profileError) {
+        return NextResponse.json(
+          { error: profileError.message },
+          { status: 500 },
+        );
+      }
+      profiles = profileRows ?? [];
+    }
+
+    const buyer =
+      profiles.find((profile) => profile.id === chat.buyer_id) ?? null;
+    const seller =
+      profiles.find((profile) => profile.id === chat.seller_id) ?? null;
+
     const { data: messages, error: messagesError } = await supabase
       .from("messages")
       .select("id, sender_id, body, created_at")
@@ -52,8 +80,14 @@ export async function GET(
         { status: 500 },
       );
     }
-
-    return NextResponse.json({ chat, messages: messages ?? [] });
+    return NextResponse.json({
+      chat: {
+        ...chat,
+        buyer,
+        seller,
+      },
+      messages: messages ?? [],
+    });
   } catch (error) {
     console.error("Chat detail fetch failed", error);
     const message =

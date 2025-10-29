@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
+import { getOptionalUser } from "@/lib/auth/session";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 function getTransport() {
@@ -22,6 +23,7 @@ function getTransport() {
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
+    const sessionUser = await getOptionalUser().catch(() => null);
     const name = String(formData.get("name") ?? "").trim();
     const email = String(formData.get("email") ?? "").trim();
     const body = String(formData.get("body") ?? "").trim();
@@ -35,6 +37,9 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    const resolvedName = name || sessionUser?.name || "CircularBuild user";
+    const resolvedEmail = email || sessionUser?.email || "";
 
     const attachments = formData
       .getAll("attachments")
@@ -75,7 +80,7 @@ export async function POST(request: Request) {
       const attachmentLines = storedFiles
         .map((file) => `• ${file.filename}: ${file.url}`)
         .join("\n");
-      const textBody = `From: ${name || "CircularBuild user"} (${email || "no email provided"})\n\n${body}${
+      const textBody = `From: ${resolvedName} (${resolvedEmail || "no email provided"})\n\n${body}${
         attachmentLines ? `\n\nUploaded files:\n${attachmentLines}` : ""
       }`;
 
@@ -91,8 +96,8 @@ export async function POST(request: Request) {
       const { error: insertError } = await supabase
         .from("contact_messages")
         .insert({
-          name: name || null,
-          email: email || null,
+          name: resolvedName || null,
+          email: resolvedEmail || null,
           subject,
           body,
           attachments: storedFiles,

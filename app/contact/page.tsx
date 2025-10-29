@@ -1,13 +1,15 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import type { ChangeEvent } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 export default function ContactPage() {
   const authStatus = useRequireAuth();
+  const { data: session } = useSession();
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -17,6 +19,13 @@ export default function ContactPage() {
   const attachmentsInputRef = useRef<HTMLInputElement | null>(null);
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024;
+  const userEmail = session?.user?.email ?? "";
+
+  useEffect(() => {
+    if (!name && session?.user?.name) {
+      setName(session.user.name);
+    }
+  }, [session?.user?.name, name]);
 
   function handleFileSelect(event: ChangeEvent<HTMLInputElement>) {
     const incoming = Array.from(event.target.files ?? []);
@@ -67,6 +76,9 @@ export default function ContactPage() {
       formData.append("name", name.trim());
       formData.append("subject", subject.trim());
       formData.append("body", body.trim());
+      if (userEmail) {
+        formData.append("email", userEmail);
+      }
       if (files.length) {
         files.forEach((file) => {
           formData.append("attachments", file);
@@ -88,7 +100,7 @@ export default function ContactPage() {
         setMsg(
           data.emailError
             ? `Message received, but email notification failed: ${data.emailError}`
-            : "Message received. Email notification was skipped (SMTP not configured).",
+            : "Message received!",
         );
       }
       setName("");

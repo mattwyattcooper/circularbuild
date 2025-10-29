@@ -124,6 +124,9 @@ export default function LikeCommentSection({
         "body",
         `${body}\n\nStory: ${postId}\nFrom: ${currentUserName} (${userEmail || "unknown"})`,
       );
+      if (userEmail) {
+        formData.append("email", userEmail);
+      }
       const response = await fetch("/api/contact", {
         method: "POST",
         body: formData,
@@ -183,12 +186,13 @@ export default function LikeCommentSection({
           onClick={toggleLike}
           disabled={likeLoading}
         >
-          <span aria-hidden>{liked ? "★" : "☆"}</span>
+          <span aria-hidden>👍</span>
           {liked ? "Liked" : "Like"}
         </button>
         <span className="text-sm text-emerald-800">
-          {likesCount} {likesCount === 1 ? "person" : "people"} appreciate this
-          story
+          {likesCount === 1
+            ? "1 person liked this story"
+            : `${likesCount} people liked this story`}
         </span>
         <button
           type="button"
