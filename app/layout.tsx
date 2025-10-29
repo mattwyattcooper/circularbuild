@@ -27,6 +27,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           name="google-site-verification"
           content="nUfsdRRUlmedpIwVe8EXirWjwwzHHHo6gIej64ZpbYI"
         />
+        <meta
+          name="google-site-verification"
+          content="bLzrfSB5siTa_G9rLlMYErM03vVtSeB3IFsy81wniQ0"
+        />
       </head>
       <body className="flex min-h-screen flex-col bg-white text-slate-900">
         <Providers>
