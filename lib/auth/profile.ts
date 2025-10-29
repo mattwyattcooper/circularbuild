@@ -1,38 +1,24 @@
-// @ts-nocheck
-import type { Account, User } from "next-auth";
+import type { User } from "next-auth";
 
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
-function resolveProfileId(user: User, account: Account | null): string {
-  if (typeof user.id === "string" && user.id.length > 0) {
-    return user.id;
-  }
-  if (account && typeof account.providerAccountId === "string") {
-    return account.providerAccountId;
-  }
-  if (user.email) {
-    return user.email;
-  }
-  throw new Error("Unable to determine profile identifier");
-}
-
-export async function upsertProfileFromAuth(
-  user: User,
-  account: Account | null,
-) {
+export async function upsertProfileFromAuth(user: User, id: string) {
   const admin = getSupabaseAdminClient();
 
-  const email = user.email ?? null;
-  const id = resolveProfileId(user, account);
+  const payload: { id: string; updated_at: string } & Record<string, string> = {
+    id,
+    updated_at: new Date().toISOString(),
+  };
 
-  await admin.from("profiles").upsert(
-    {
-      id,
-      email,
-      name: user.name ?? null,
-      avatar_url: user.image ?? null,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "id" },
-  );
+  if (user.email) {
+    payload.email = user.email.toLowerCase();
+  }
+  if (user.name) {
+    payload.name = user.name;
+  }
+  if (user.image) {
+    payload.avatar_url = user.image;
+  }
+
+  await admin.from("profiles").upsert(payload, { onConflict: "id" });
 }

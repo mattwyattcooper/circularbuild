@@ -20,7 +20,7 @@ export async function GET(
     const { data: chat, error: chatError } = await supabase
       .from("chats")
       .select(
-        `id, listing_id, buyer_id, seller_id, is_active, created_at, updated_at,
+        `id, listing_id, buyer_id, seller_id, is_active, created_at,
          listing:listings(id,title,photos,location_text),
          participants:chat_participants(user_id,has_unread,last_read_at),
          buyer:profiles!chats_buyer_id_fkey(id,name,avatar_url,bio),

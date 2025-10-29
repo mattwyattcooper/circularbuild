@@ -118,7 +118,7 @@ export default async function NewsPage() {
       )}
 
       <div className="grid gap-6 md:grid-cols-2">
-        {(posts ?? []).map((post) => {
+        {posts.map((post) => {
           const readMinutes = estimateReadMinutes(post.body ?? "");
           const excerpt = buildExcerpt(post.body ?? "");
           const canEdit = isAdmin || post.author_id === user?.id;

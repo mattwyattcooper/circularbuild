@@ -12,10 +12,10 @@ export async function GET() {
     const { data: chats, error } = await supabase
       .from("chats")
       .select(
-        "id, listing_id, buyer_id, seller_id, updated_at, listing:listings(id, title, photos)",
+        "id, listing_id, buyer_id, seller_id, created_at, listing:listings(id, title, photos)",
       )
       .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
-      .order("updated_at", { ascending: false });
+      .order("created_at", { ascending: false });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
