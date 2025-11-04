@@ -39,7 +39,6 @@ export async function PUT(
         title,
         body: content,
         cover_image_url: coverImageUrl,
-        updated_at: new Date().toISOString(),
       })
       .eq("id", postId)
       .eq("author_id", user.id);
