@@ -14,6 +14,10 @@ export async function POST(request: Request) {
     const interests =
       typeof body.interests === "string" ? body.interests.trim() : "";
     const bio = typeof body.bio === "string" ? body.bio.trim() : "";
+    const organizationSlug =
+      typeof body.organizationSlug === "string"
+        ? body.organizationSlug.trim()
+        : "";
     const ageValue =
       body.age != null && Number.isFinite(Number(body.age))
         ? Number(body.age)
@@ -34,6 +38,8 @@ export async function POST(request: Request) {
         bio: bio.length > 0 ? bio : null,
         age: ageValue,
         avatar_url: avatarUrl,
+        organization_slug:
+          organizationSlug.length > 0 ? organizationSlug : null,
       },
       { onConflict: "id" },
     );

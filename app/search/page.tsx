@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { KeyboardEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -70,6 +69,7 @@ export default function SearchPage() {
     null,
   );
   const [locStatus, setLocStatus] = useState<string>("");
+  const [usingLocation, setUsingLocation] = useState(false);
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
   const [wishlistMsg, setWishlistMsg] = useState<string>("");
   const [authPrompt, setAuthPrompt] = useState<{
@@ -118,17 +118,27 @@ export default function SearchPage() {
       setLoading(true);
       setMsg(initial ? "" : "Searching...");
       try {
+        const resolvedOriginLat =
+          originLat !== undefined ? originLat : (origin?.lat ?? undefined);
+        const resolvedOriginLng =
+          originLng !== undefined ? originLng : (origin?.lng ?? undefined);
+        const payload: Record<string, unknown> = {
+          q: q.trim() || undefined,
+          type: type || undefined,
+          address: address.trim() || undefined,
+          radiusMiles,
+        };
+        if (resolvedOriginLat !== undefined) {
+          payload.originLat = resolvedOriginLat;
+        }
+        if (resolvedOriginLng !== undefined) {
+          payload.originLng = resolvedOriginLng;
+        }
+
         const res = await fetch("/api/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            q: q.trim() || undefined,
-            type: type || undefined,
-            address: address.trim() || undefined,
-            radiusMiles,
-            originLat: originLat ?? origin?.lat,
-            originLng: originLng ?? origin?.lng,
-          }),
+          body: JSON.stringify(payload),
         });
         const data = await res.json();
         if (data.error) {
@@ -178,7 +188,18 @@ export default function SearchPage() {
     }
   }, [authStatus, fetchListings, fetchWishlist]);
 
+  const clearLocationFilter = () => {
+    setOrigin(null);
+    setUsingLocation(false);
+    setLocStatus("Location filter turned off.");
+    void fetchListings({ originLat: null, originLng: null });
+  };
+
   const handleUseCurrentLocation = () => {
+    if (usingLocation) {
+      clearLocationFilter();
+      return;
+    }
     if (!navigator.geolocation) {
       setLocStatus("Geolocation is not supported in this browser.");
       return;
@@ -188,6 +209,7 @@ export default function SearchPage() {
       (pos) => {
         const { latitude, longitude } = pos.coords;
         setOrigin({ lat: latitude, lng: longitude });
+        setUsingLocation(true);
         setLocStatus(
           `Using your current location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`,
         );
@@ -197,6 +219,7 @@ export default function SearchPage() {
         setLocStatus(
           `Unable to retrieve location.${err.message ? ` (${err.message})` : ""}`,
         );
+        setUsingLocation(false);
       },
     );
   };
@@ -343,18 +366,23 @@ export default function SearchPage() {
                   <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
                     Material
                   </span>
-                  <select
-                    className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                    value={type}
-                    onChange={(e) => setType(e.target.value)}
-                    onKeyDown={handleFilterKeyDown}
-                  >
-                    {MATERIALS.map((m) => (
-                      <option key={m} value={m}>
-                        {m === "" ? "All materials" : m}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      className="w-full appearance-none rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-medium text-white shadow-inner shadow-black/20 backdrop-blur focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                      value={type}
+                      onChange={(e) => setType(e.target.value)}
+                      onKeyDown={handleFilterKeyDown}
+                    >
+                      {MATERIALS.map((m) => (
+                        <option key={m} value={m} className="text-slate-900">
+                          {m === "" ? "All materials" : m}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="pointer-events-none absolute inset-y-0 right-4 grid place-items-center text-sm text-emerald-100/80">
+                      ▾
+                    </span>
+                  </div>
                 </label>
                 <label className="flex flex-col gap-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
@@ -399,10 +427,14 @@ export default function SearchPage() {
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <button
                     type="button"
-                    className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-emerald-100/90 transition hover:border-white hover:text-white"
+                    className={`inline-flex items-center justify-center rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                      usingLocation
+                        ? "border-emerald-300/70 bg-emerald-500/20 text-white"
+                        : "border-white/20 bg-white/10 text-emerald-100/90 hover:border-white hover:text-white"
+                    }`}
                     onClick={handleUseCurrentLocation}
                   >
-                    Use my location
+                    {usingLocation ? "Location filter on" : "Use my location"}
                   </button>
                   <button
                     type="button"
@@ -452,86 +484,96 @@ export default function SearchPage() {
                 {items.map((l) => {
                   const saved = wishlistIds.has(l.id);
                   const owner = Array.isArray(l.owner) ? l.owner[0] : l.owner;
+                  const formattedAvailable = (() => {
+                    const parsed = new Date(l.available_until);
+                    if (Number.isNaN(parsed.getTime())) return null;
+                    return parsed.toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    });
+                  })();
                   return (
-                    <div
+                    <article
                       key={l.id}
-                      className="group flex h-full flex-col overflow-hidden rounded-3xl border border-white/15 bg-white/10 p-5 text-emerald-100/85 shadow-lg backdrop-blur transition hover:-translate-y-1 hover:border-white"
+                      className="group flex h-full flex-col overflow-hidden rounded-3xl border border-white/15 bg-white/10 p-5 text-emerald-100/85 shadow-lg backdrop-blur"
                     >
-                      {Array.isArray(l.photos) && l.photos[0] ? (
-                        <Image
-                          src={l.photos[0]}
-                          alt={l.title}
-                          width={400}
-                          height={320}
-                          sizes="(max-width: 768px) 100vw, 400px"
-                          className="mb-4 h-44 w-full rounded-2xl object-cover"
-                        />
-                      ) : (
-                        <div className="mb-4 grid h-44 w-full place-items-center rounded-2xl border border-white/15 bg-white/10 text-sm text-emerald-100/60">
-                          Photo coming soon
+                      <button
+                        type="button"
+                        onClick={() => handleViewListing(l.id)}
+                        className="w-full flex-1 cursor-pointer rounded-2xl border border-transparent bg-transparent text-left focus:outline-none focus-visible:border-white/40 focus-visible:ring-2 focus-visible:ring-emerald-300"
+                      >
+                        {Array.isArray(l.photos) && l.photos[0] ? (
+                          <Image
+                            src={l.photos[0]}
+                            alt={l.title}
+                            width={400}
+                            height={320}
+                            sizes="(max-width: 768px) 100vw, 400px"
+                            className="mb-4 h-44 w-full rounded-2xl object-cover transition duration-500 group-hover:scale-[1.01]"
+                          />
+                        ) : (
+                          <div className="mb-4 grid h-44 w-full place-items-center rounded-2xl border border-white/15 bg-white/10 text-sm text-emerald-100/60">
+                            Photo coming soon
+                          </div>
+                        )}
+                        <div className="space-y-1">
+                          <h2 className="text-lg font-semibold text-white">
+                            {l.title}
+                          </h2>
+                          <p className="text-sm text-emerald-100/80">
+                            {l.type} • {l.shape} • {l.count} pcs
+                          </p>
+                          <p className="text-xs text-emerald-100/70">
+                            {formattedAvailable
+                              ? `Available until ${formattedAvailable}`
+                              : "Availability shared after contact"}
+                            {" • "}
+                            {l.location_text}
+                          </p>
                         </div>
-                      )}
-                      <div className="space-y-1">
-                        <h2 className="text-lg font-semibold text-white">
-                          {l.title}
-                        </h2>
-                        <p className="text-sm text-emerald-100/80">
-                          {l.type} • {l.shape} • {l.count} pcs
-                        </p>
-                        <p className="text-xs text-emerald-100/70">
-                          Available until {l.available_until} •{" "}
-                          {l.location_text}
-                        </p>
-                      </div>
-                      {owner && (
-                        <Link
-                          href={`/profile/${owner.id}`}
-                          className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white transition hover:border-white"
-                        >
-                          <div className="h-9 w-9 overflow-hidden rounded-full border border-white/20 bg-white/10">
-                            {owner.avatar_url ? (
-                              <Image
-                                src={owner.avatar_url}
-                                alt={owner.name ?? "Profile avatar"}
-                                width={36}
-                                height={36}
-                                className="h-9 w-9 object-cover"
-                              />
-                            ) : (
-                              <div className="grid h-9 w-9 place-items-center text-emerald-100/80">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.25"
-                                  className="h-5 w-5"
-                                >
-                                  <title>Profile icon</title>
-                                  <circle cx="12" cy="8" r="4" />
-                                  <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
-                                </svg>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-col">
-                            <span>{owner.name ?? "CircularBuild member"}</span>
-                            {owner.bio && (
-                              <span className="text-xs text-emerald-100/70">
-                                {owner.bio}
+                        {owner && (
+                          <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white">
+                            <div className="h-9 w-9 overflow-hidden rounded-full border border-white/20 bg-white/10">
+                              {owner.avatar_url ? (
+                                <Image
+                                  src={owner.avatar_url}
+                                  alt={owner.name ?? "Profile avatar"}
+                                  width={36}
+                                  height={36}
+                                  className="h-9 w-9 object-cover"
+                                />
+                              ) : (
+                                <div className="grid h-9 w-9 place-items-center text-emerald-100/80">
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.25"
+                                    className="h-5 w-5"
+                                  >
+                                    <title>Profile icon</title>
+                                    <circle cx="12" cy="8" r="4" />
+                                    <path d="M4 20c0-3.314 3.134-6 7-6h2c3.866 0 7 2.686 7 6" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex flex-col">
+                              <span>
+                                {owner.name ?? "CircularBuild member"}
                               </span>
-                            )}
+                              {owner.bio && (
+                                <span className="text-xs text-emerald-100/70">
+                                  {owner.bio}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </Link>
-                      )}
-                      <div className="mt-auto flex flex-wrap gap-3 pt-4">
-                        <button
-                          type="button"
-                          className="rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-400"
-                          onClick={() => handleViewListing(l.id)}
-                        >
-                          View listing
-                        </button>
+                        )}
+                      </button>
+                      <div className="mt-4 flex flex-wrap gap-3">
                         <button
                           type="button"
                           className={`rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
@@ -544,7 +586,7 @@ export default function SearchPage() {
                           {saved ? "Saved to wishlist" : "Save to wishlist"}
                         </button>
                       </div>
-                    </div>
+                    </article>
                   );
                 })}
               </div>

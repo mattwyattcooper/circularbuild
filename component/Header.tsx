@@ -124,7 +124,7 @@ export default function Header() {
         >
           <span className="relative hidden h-full w-48 overflow-hidden rounded-lg border border-emerald-100 bg-white/80 shadow-sm transition group-hover:border-emerald-300 group-hover:shadow-lg sm:inline-flex">
             <Image
-              src="/logo.jpg"
+              src="/new-logo.png"
               alt="CircularBuild logo"
               fill
               priority
@@ -222,6 +222,13 @@ export default function Header() {
                     onClick={() => setMenuOpen(false)}
                   >
                     My listings
+                  </Link>
+                  <Link
+                    href="/account/diversion"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Waste diversion stats
                   </Link>
                   <Link
                     href="/account/wishlist"

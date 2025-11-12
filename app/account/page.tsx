@@ -1,9 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
+import {
+  getOrganizationBySlug,
+  ORGANIZATION_PARTNERS,
+} from "@/lib/organizations";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type Profile = {
@@ -15,6 +19,7 @@ type Profile = {
   interests: string | null;
   bio: string | null;
   avatar_url: string | null;
+  organization_slug: string | null;
 };
 
 export default function AccountSettingsPage() {
@@ -25,6 +30,7 @@ export default function AccountSettingsPage() {
   const [age, setAge] = useState("");
   const [interests, setInterests] = useState("");
   const [bio, setBio] = useState("");
+  const [organization, setOrganization] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [msg, setMsg] = useState("");
@@ -67,6 +73,7 @@ export default function AccountSettingsPage() {
           setInterests(profileData.interests ?? "");
           setBio(profileData.bio ?? "");
           setAvatarUrl(profileData.avatar_url ?? null);
+          setOrganization(profileData.organization_slug ?? "");
         }
         if (data.stats) {
           setStats(data.stats);
@@ -99,6 +106,7 @@ export default function AccountSettingsPage() {
           interests: interestsTrimmed,
           bio: bioTrimmed,
           avatarUrl,
+          organizationSlug: organization || null,
         }),
       });
       const data = (await response.json()) as { error?: string } | undefined;
@@ -115,6 +123,7 @@ export default function AccountSettingsPage() {
               interests: interestsTrimmed || null,
               bio: bioTrimmed || null,
               avatar_url: avatarUrl,
+              organization_slug: organization || null,
             }
           : prev,
       );
@@ -163,6 +172,11 @@ export default function AccountSettingsPage() {
     "Non-binary",
     "Prefer not to say",
   ];
+
+  const selectedOrganization = useMemo(
+    () => getOrganizationBySlug(organization),
+    [organization],
+  );
 
   if (authStatus === "checking") {
     return (
@@ -323,6 +337,38 @@ export default function AccountSettingsPage() {
 
               <label className="block text-sm">
                 <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                  Organization affiliation
+                </span>
+                <select
+                  className="mt-2 w-full appearance-none rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-medium text-white shadow-inner shadow-black/20 focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  value={organization}
+                  onChange={(event) => setOrganization(event.target.value)}
+                >
+                  <option value="" className="text-slate-900">
+                    No affiliation / independent
+                  </option>
+                  {ORGANIZATION_PARTNERS.map((org) => (
+                    <option
+                      key={org.slug}
+                      value={org.slug}
+                      className="text-slate-900"
+                    >
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
+                {organization && selectedOrganization && (
+                  <p className="mt-2 text-xs text-emerald-100/70">
+                    {selectedOrganization.description}
+                    {selectedOrganization.region
+                      ? ` · ${selectedOrganization.region}`
+                      : ""}
+                  </p>
+                )}
+              </label>
+
+              <label className="block text-sm">
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
                   Bio
                 </span>
                 <textarea
@@ -360,6 +406,7 @@ export default function AccountSettingsPage() {
                   setInterests(profile.interests ?? "");
                   setBio(profile.bio ?? "");
                   setAvatarUrl(profile.avatar_url ?? null);
+                  setOrganization(profile.organization_slug ?? "");
                   setMsg("Reverted unsaved changes.");
                 }
               }}

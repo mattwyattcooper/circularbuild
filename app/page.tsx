@@ -3,7 +3,6 @@ import Link from "next/link";
 
 import HeroSection from "@/component/HeroSection";
 import ListingCard, { type ListingCardData } from "@/component/ListingCard";
-import ParallaxSection from "@/component/ParallaxSection";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 const QUICK_NAV = [
@@ -96,6 +95,17 @@ function buildExcerpt(body: string, limit = 160) {
   return plain.length > limit ? `${plain.slice(0, limit - 1)}…` : plain;
 }
 
+function formatAvailableUntil(value?: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export default async function Home() {
   const supabase = getSupabaseAdminClient();
 
@@ -142,24 +152,27 @@ export default async function Home() {
     }, {});
   }
 
-  const cards: ListingCardData[] = (listings ?? []).map((listing) => ({
-    id: listing.id,
-    title: listing.title,
-    image: listing.photos?.[0] ?? FALLBACK_IMAGE,
-    tags: [listing.type, listing.shape].filter(Boolean),
-    location: listing.location_text,
-    availableLabel: listing.available_until
-      ? `Available until ${listing.available_until}`
-      : undefined,
-    owner:
-      listing.owner_id && owners[listing.owner_id]
-        ? {
-            id: owners[listing.owner_id].id,
-            name: owners[listing.owner_id].name ?? undefined,
-            avatarUrl: owners[listing.owner_id].avatar_url ?? undefined,
-          }
+  const cards: ListingCardData[] = (listings ?? []).map((listing) => {
+    const formattedAvailable = formatAvailableUntil(listing.available_until);
+    return {
+      id: listing.id,
+      title: listing.title,
+      image: listing.photos?.[0] ?? FALLBACK_IMAGE,
+      tags: [listing.type, listing.shape].filter(Boolean),
+      location: listing.location_text,
+      availableLabel: formattedAvailable
+        ? `Available until ${formattedAvailable}`
         : undefined,
-  }));
+      owner:
+        listing.owner_id && owners[listing.owner_id]
+          ? {
+              id: owners[listing.owner_id].id,
+              name: owners[listing.owner_id].name ?? undefined,
+              avatarUrl: owners[listing.owner_id].avatar_url ?? undefined,
+            }
+          : undefined,
+    };
+  });
 
   const hasLiveListings = cards.length > 0;
 
@@ -173,13 +186,13 @@ export default async function Home() {
   const hasStories = stories.length > 0;
 
   return (
-    <main className="flex flex-col">
+    <main className="flex flex-col bg-slate-950 text-white">
       <HeroSection stats={FEATURED_STATS} />
 
-      <section className="relative isolate w-full overflow-hidden bg-gradient-to-tr from-emerald-900 via-emerald-800 to-slate-900 py-12 text-white sm:py-14 lg:py-16">
+      <section className="relative isolate w-full border-t border-white/10 py-12 sm:py-14 lg:py-16">
         <div className="absolute inset-0">
-          <div className="absolute -left-20 top-10 h-56 w-56 rounded-full bg-emerald-500/25 blur-3xl" />
-          <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-teal-400/20 blur-3xl" />
+          <div className="absolute -left-10 top-10 h-56 w-56 rounded-full bg-emerald-500/20 blur-3xl" />
+          <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-teal-400/15 blur-3xl" />
         </div>
         <div className="relative mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:px-8">
           <div className="space-y-5">
@@ -216,16 +229,13 @@ export default async function Home() {
         </div>
       </section>
 
-      <ParallaxSection
-        imageSrc="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2400&q=80"
-        imageAlt="Stacks of reclaimed timber organized inside a warehouse"
-        overlayClassName="bg-slate-950/65"
-        className="mt-[-1px]"
-        speed={0.2}
-        maxOffset={180}
-      >
-        <div className="mx-auto flex min-h-[60vh] max-w-6xl flex-col justify-center gap-8 px-4 py-12 sm:px-6 md:py-16 lg:px-8">
-          <div className="space-y-3 text-white">
+      <section className="relative isolate w-full border-t border-white/10 py-16">
+        <div className="absolute inset-0">
+          <div className="absolute left-1/4 top-0 h-72 w-72 rounded-full bg-emerald-500/15 blur-3xl" />
+          <div className="absolute bottom-[-4rem] right-8 h-72 w-72 rounded-full bg-sky-500/10 blur-[120px]" />
+        </div>
+        <div className="relative mx-auto flex max-w-6xl flex-col gap-10 px-4 sm:px-6 lg:px-8">
+          <div className="space-y-3">
             <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
               Marketplace preview
             </span>
@@ -238,7 +248,7 @@ export default async function Home() {
               coordinate pickups.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {hasLiveListings
               ? cards.map((card) => (
                   <ListingCard key={card.id} listing={card} />
@@ -251,7 +261,7 @@ export default async function Home() {
                       footer: (
                         <Link
                           href="/search"
-                          className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 underline"
+                          className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-200 underline"
                         >
                           Preview in marketplace
                           <span aria-hidden>→</span>
@@ -271,18 +281,14 @@ export default async function Home() {
             </Link>
           </div>
         </div>
-      </ParallaxSection>
+      </section>
 
-      <ParallaxSection
-        imageSrc="https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=2400&q=80"
-        imageAlt="Crew lifting reclaimed steel beams on a job site"
-        overlayClassName="bg-emerald-950/65"
-        className="mt-[-1px]"
-        speed={0.24}
-        maxOffset={220}
-      >
-        <div className="mx-auto grid min-h-[60vh] max-w-6xl gap-10 px-4 py-12 sm:px-6 md:py-16 lg:grid-cols-2 lg:items-center lg:px-8">
-          <div className="space-y-4 text-white">
+      <section className="relative isolate w-full border-t border-white/10 py-16">
+        <div className="absolute inset-0">
+          <div className="absolute -top-10 right-16 h-64 w-64 rounded-full bg-emerald-500/20 blur-3xl" />
+        </div>
+        <div className="relative mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 md:py-4 lg:grid-cols-2 lg:items-center lg:px-8">
+          <div className="space-y-4">
             <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
               Stories from the field
             </span>
@@ -306,7 +312,7 @@ export default async function Home() {
               ? stories.map((story) => (
                   <article
                     key={story.id}
-                    className="rounded-2xl border border-white/30 bg-white/15 p-6 text-white shadow-lg backdrop-blur-xl"
+                    className="rounded-3xl border border-white/15 bg-white/10 p-6 text-white shadow-lg backdrop-blur"
                   >
                     <h3 className="text-lg font-semibold text-white">
                       {story.title}
@@ -339,7 +345,7 @@ export default async function Home() {
                 ].map((story) => (
                   <article
                     key={story.id}
-                    className="rounded-2xl border border-white/30 bg-white/15 p-6 text-white shadow-lg backdrop-blur-xl"
+                    className="rounded-3xl border border-white/15 bg-white/10 p-6 text-white shadow-lg backdrop-blur"
                   >
                     <h3 className="text-lg font-semibold text-white">
                       {story.title}
@@ -358,17 +364,13 @@ export default async function Home() {
                 ))}
           </div>
         </div>
-      </ParallaxSection>
+      </section>
 
-      <ParallaxSection
-        imageSrc="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=80"
-        imageAlt="Community volunteers unloading reclaimed construction materials"
-        overlayClassName="bg-slate-950/40"
-        className="mt-[-1px]"
-        speed={0.22}
-        maxOffset={200}
-      >
-        <div className="mx-auto flex min-h-[55vh] max-w-6xl flex-col justify-center gap-6 px-4 py-12 text-white sm:px-6 md:py-16 lg:px-8">
+      <section className="relative isolate w-full border-t border-white/10 py-16">
+        <div className="absolute inset-0">
+          <div className="absolute left-0 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-emerald-500/20 blur-[140px]" />
+        </div>
+        <div className="relative mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
           <h2 className="text-[clamp(2rem,3.2vw,3.4rem)] font-semibold leading-tight">
             Ready to keep materials in circulation?
           </h2>
@@ -393,7 +395,7 @@ export default async function Home() {
             </Link>
           </div>
         </div>
-      </ParallaxSection>
+      </section>
     </main>
   );
 }
