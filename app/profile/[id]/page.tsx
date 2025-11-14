@@ -6,6 +6,7 @@ import AuthWall from "@/component/AuthWall";
 import { getOptionalUser } from "@/lib/auth/session";
 import { calculateCo2eKg } from "@/lib/diversion";
 import { expirePastListings } from "@/lib/listings";
+import { getOrganizationBySlug } from "@/lib/organizations";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ type Profile = {
   gender: string | null;
   age: number | null;
   avatar_url: string | null;
+  organization_slug: string | null;
 };
 
 export default async function ProfileDetailPage({
@@ -45,7 +47,9 @@ export default async function ProfileDetailPage({
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, name, bio, interests, gender, age, avatar_url")
+    .select(
+      "id, name, bio, interests, gender, age, avatar_url, organization_slug",
+    )
     .eq("id", params.id)
     .maybeSingle<Profile>();
 
@@ -71,6 +75,10 @@ export default async function ProfileDetailPage({
     );
   }
 
+  const organizationName = profile.organization_slug
+    ? (getOrganizationBySlug(profile.organization_slug)?.name ?? null)
+    : null;
+
   const viewingOwnProfile = profile.id === user.id;
 
   const { data: listings } = await supabase
@@ -84,10 +92,6 @@ export default async function ProfileDetailPage({
 
   const activeListings = (listings ?? []).filter(
     (listing) => listing.status === "active",
-  );
-
-  const archivedListings = (listings ?? []).filter(
-    (listing) => listing.status !== "active",
   );
 
   return (
@@ -131,6 +135,11 @@ export default async function ProfileDetailPage({
               <h1 className="text-[clamp(2rem,4vw,3.2rem)] font-extrabold leading-tight">
                 {profile.name ?? "CircularBuild member"}
               </h1>
+              {organizationName && (
+                <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">
+                  {organizationName}
+                </p>
+              )}
               <div className="flex flex-wrap gap-3 text-xs text-emerald-100/80">
                 {profile.gender && (
                   <span className="rounded-full border border-white/20 px-3 py-1 uppercase tracking-[0.2em]">
@@ -234,53 +243,6 @@ export default async function ProfileDetailPage({
                         )}
                       </div>
                     </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <h2 className="text-lg font-semibold text-white">
-              Recent activity
-            </h2>
-            {archivedListings.length === 0 ? (
-              <p className="mt-3 text-sm text-emerald-100/70">
-                This member hasn&apos;t archived any listings yet.
-              </p>
-            ) : (
-              <div className="mt-4 space-y-3">
-                {archivedListings.map((listing) => {
-                  const weightLbs =
-                    typeof listing.approximate_weight_lbs === "number" &&
-                    Number.isFinite(listing.approximate_weight_lbs)
-                      ? listing.approximate_weight_lbs
-                      : 0;
-                  const co2Kg = calculateCo2eKg(listing.type, weightLbs);
-                  return (
-                    <div
-                      key={listing.id}
-                      className="flex flex-col gap-2 rounded-2xl border border-white/15 bg-white/5 px-4 py-4 text-sm text-emerald-100/80 shadow backdrop-blur"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="font-semibold text-white">
-                          {listing.title}
-                        </span>
-                        <span className="rounded-full border border-white/20 px-3 py-1 text-xs uppercase tracking-[0.2em]">
-                          {listing.status}
-                        </span>
-                      </div>
-                      <span className="text-xs text-emerald-100/60">
-                        Available until {listing.available_until} •{" "}
-                        {listing.location_text}
-                      </span>
-                      {weightLbs > 0 && (
-                        <span className="text-xs text-emerald-100/60">
-                          ≈ {weightLbs.toLocaleString()} lbs •{" "}
-                          {co2Kg.toFixed(1)} kg CO₂e
-                        </span>
-                      )}
-                    </div>
                   );
                 })}
               </div>

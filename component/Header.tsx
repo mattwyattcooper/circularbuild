@@ -11,8 +11,10 @@ export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const contactMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [contactMenuOpen, setContactMenuOpen] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [hasUnreadChats, setHasUnreadChats] = useState(false);
@@ -26,7 +28,6 @@ export default function Header() {
     { label: "Who We Are", href: "/who-we-are" },
     { label: "Marketplace", href: "/search" },
     { label: "Donate", href: "/donate" },
-    { label: "For Organizations", href: "/organizations" },
     {
       label: "Chats",
       href: "/chats",
@@ -35,7 +36,6 @@ export default function Header() {
     },
     { label: "News", href: "/news" },
     { label: "FAQs", href: "/faqs" },
-    { label: "Contact", href: "/contact", requiresAuth: true },
   ];
 
   useEffect(() => {
@@ -113,6 +113,22 @@ export default function Header() {
     };
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (!contactMenuOpen) return;
+
+    function handleClick(event: MouseEvent) {
+      if (!contactMenuRef.current) return;
+      if (!contactMenuRef.current.contains(event.target as Node)) {
+        setContactMenuOpen(false);
+      }
+    }
+
+    window.addEventListener("mousedown", handleClick);
+    return () => {
+      window.removeEventListener("mousedown", handleClick);
+    };
+  }, [contactMenuOpen]);
+
   const email = session?.user?.email ?? null;
 
   return (
@@ -174,6 +190,34 @@ export default function Header() {
               </button>
             );
           })}
+
+          <div className="relative" ref={contactMenuRef}>
+            <button
+              type="button"
+              onClick={() => setContactMenuOpen((prev) => !prev)}
+              className="rounded-full px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+            >
+              Contact ▾
+            </button>
+            {contactMenuOpen && (
+              <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-emerald-100 bg-white text-left shadow-xl">
+                <Link
+                  href="/contact"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50"
+                  onClick={() => setContactMenuOpen(false)}
+                >
+                  For users
+                </Link>
+                <Link
+                  href="/organizations"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50"
+                  onClick={() => setContactMenuOpen(false)}
+                >
+                  For organizations
+                </Link>
+              </div>
+            )}
+          </div>
 
           {status === "authenticated" && email ? (
             <div className="relative" ref={menuRef}>
