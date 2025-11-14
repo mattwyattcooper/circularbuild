@@ -2,19 +2,54 @@
 import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/auth/session";
+import { calculateCo2eKg } from "@/lib/diversion";
 import { getOrganizationBySlug } from "@/lib/organizations";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
-type ListingRow = { count?: number | null };
+type ListingRow = {
+  count?: number | null;
+  approximate_weight_lbs?: number | null;
+  type?: string | null;
+};
 
-function sumUnits(rows: ListingRow[] | null | undefined) {
-  return (rows ?? []).reduce((total, row) => {
-    const value = Number(row.count);
-    if (Number.isFinite(value) && value > 0) {
-      return total + value;
-    }
-    return total + 1;
-  }, 0);
+type Metrics = {
+  pounds: number;
+  co2Kg: number;
+  listings: number;
+};
+
+function reduceMetrics(rows: ListingRow[] | null | undefined): Metrics {
+  const safeRows = rows ?? [];
+  const totals = safeRows.reduce<Metrics>(
+    (acc, row) => {
+      const weight = normalizeWeight(row);
+      if (weight > 0) {
+        acc.pounds += weight;
+        acc.co2Kg += calculateCo2eKg(row.type ?? null, weight);
+      }
+      return acc;
+    },
+    { pounds: 0, co2Kg: 0, listings: safeRows.length },
+  );
+  totals.co2Kg = Number(totals.co2Kg.toFixed(2));
+  totals.pounds = Number(totals.pounds.toFixed(2));
+  return totals;
+}
+
+function normalizeWeight(row: ListingRow) {
+  const weight = Number(row.approximate_weight_lbs);
+  if (Number.isFinite(weight) && weight > 0) return weight;
+  const fallback = Number(row.count);
+  if (Number.isFinite(fallback) && fallback > 0) return fallback;
+  return 0;
+}
+
+function combineMetrics(a: Metrics, b: Metrics): Metrics {
+  return {
+    pounds: Number((a.pounds + b.pounds).toFixed(2)),
+    co2Kg: Number((a.co2Kg + b.co2Kg).toFixed(2)),
+    listings: a.listings + b.listings,
+  };
 }
 
 export async function GET() {
@@ -32,20 +67,17 @@ export async function GET() {
 
     const { data: donatedRows } = await supabase
       .from("listings")
-      .select("count,id")
+      .select("count,approximate_weight_lbs,type,id")
       .eq("owner_id", user.id)
       .eq("status", "procured");
-
-    const donatedUnits = sumUnits(donatedRows);
-    const donatedListings = donatedRows?.length ?? 0;
+    const donatedMetrics = reduceMetrics(donatedRows);
 
     const { data: buyerChats } = await supabase
       .from("chats")
       .select("listing_id")
       .eq("buyer_id", user.id);
 
-    let acceptedUnits = 0;
-    let acceptedListings = 0;
+    let acceptedRows: ListingRow[] = [];
     if (buyerChats?.length) {
       const listingIds = Array.from(
         new Set(
@@ -55,23 +87,23 @@ export async function GET() {
         ),
       );
       if (listingIds.length) {
-        const { data: acceptedRows } = await supabase
+        const { data } = await supabase
           .from("listings")
-          .select("id,count")
+          .select("id,count,approximate_weight_lbs,type")
           .in("id", listingIds)
           .eq("status", "procured");
-        acceptedUnits = sumUnits(acceptedRows);
-        acceptedListings = acceptedRows?.length ?? 0;
+        acceptedRows = data ?? [];
       }
     }
+    const acceptedMetrics = reduceMetrics(acceptedRows);
 
     let organization: null | {
       slug: string;
       name: string;
       memberCount: number;
-      donated: { units: number; listings: number };
-      accepted: { units: number; listings: number };
-      totalUnits: number;
+      pounds: number;
+      co2Kg: number;
+      listings: number;
     } = null;
 
     const orgSlug = profile?.organization_slug ?? null;
@@ -89,7 +121,7 @@ export async function GET() {
           await Promise.all([
             supabase
               .from("listings")
-              .select("id,count")
+              .select("id,count,approximate_weight_lbs,type")
               .in("owner_id", memberIds)
               .eq("status", "procured"),
             supabase
@@ -110,39 +142,36 @@ export async function GET() {
           if (orgListingIds.length) {
             const { data } = await supabase
               .from("listings")
-              .select("id,count")
+              .select("id,count,approximate_weight_lbs,type")
               .in("id", orgListingIds)
               .eq("status", "procured");
             orgAcceptedRows = data ?? [];
           }
         }
 
-        const orgDonatedUnits = sumUnits(orgDonatedRows);
-        const orgAcceptedUnits = sumUnits(orgAcceptedRows);
+        const orgDonatedMetrics = reduceMetrics(orgDonatedRows);
+        const orgAcceptedMetrics = reduceMetrics(orgAcceptedRows);
+        const orgTotals = combineMetrics(orgDonatedMetrics, orgAcceptedMetrics);
         const orgMeta = getOrganizationBySlug(orgSlug);
 
         organization = {
           slug: orgSlug,
           name: orgMeta?.name ?? orgSlug,
           memberCount: memberIds.length,
-          donated: {
-            units: orgDonatedUnits,
-            listings: orgDonatedRows?.length ?? 0,
-          },
-          accepted: {
-            units: orgAcceptedUnits,
-            listings: orgAcceptedRows.length,
-          },
-          totalUnits: orgDonatedUnits + orgAcceptedUnits,
+          pounds: Number(orgTotals.pounds.toFixed(2)),
+          co2Kg: orgTotals.co2Kg,
+          listings: orgTotals.listings,
         };
       }
     }
 
+    const personalTotals = combineMetrics(donatedMetrics, acceptedMetrics);
+
     return NextResponse.json({
       personal: {
-        donated: { units: donatedUnits, listings: donatedListings },
-        accepted: { units: acceptedUnits, listings: acceptedListings },
-        totalUnits: donatedUnits + acceptedUnits,
+        pounds: Number(personalTotals.pounds.toFixed(2)),
+        co2Kg: personalTotals.co2Kg,
+        listings: personalTotals.listings,
       },
       organization,
     });

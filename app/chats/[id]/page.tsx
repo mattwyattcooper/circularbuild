@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import ParallaxSection from "@/component/ParallaxSection";
+import { getOrganizationBySlug } from "@/lib/organizations";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type Message = {
@@ -30,6 +31,7 @@ type ProfileSummary = {
   name: string | null;
   avatar_url: string | null;
   bio: string | null;
+  organization_slug?: string | null;
 };
 
 type ChatPayload = {
@@ -298,6 +300,9 @@ export default function ChatPage() {
   }
 
   const counterparty = userId === chat.buyer_id ? sellerProfile : buyerProfile;
+  const counterpartyOrg = counterparty?.organization_slug
+    ? (getOrganizationBySlug(counterparty.organization_slug)?.name ?? null)
+    : null;
   const listingTitle = listing?.title ?? "Listing";
 
   return (
@@ -365,6 +370,11 @@ export default function ChatPage() {
                   <p className="text-sm font-semibold text-white">
                     {counterparty?.name ?? "CircularBuild member"}
                   </p>
+                  {counterpartyOrg && (
+                    <p className="text-xs text-emerald-100/70">
+                      {counterpartyOrg}
+                    </p>
+                  )}
                   <p className="text-xs text-emerald-100/70">
                     Chat about {listingTitle}
                   </p>

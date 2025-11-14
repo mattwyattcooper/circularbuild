@@ -7,24 +7,14 @@ import type { KeyboardEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
+import { calculateCo2eKg, MATERIAL_OPTIONS } from "@/lib/diversion";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 const ListingMap = dynamic(() => import("@/component/ListingMap"), {
   ssr: false,
 });
 
-const MATERIALS = [
-  "",
-  "Wood",
-  "Steel",
-  "Aluminum",
-  "Concrete",
-  "Masonry",
-  "Drywall",
-  "Glass",
-  "Plastic",
-  "Other",
-];
+const MATERIALS = ["", ...MATERIAL_OPTIONS];
 
 type Listing = {
   id: string;
@@ -32,6 +22,7 @@ type Listing = {
   type: string;
   shape: string;
   count: number;
+  approximate_weight_lbs: number | null;
   available_until: string;
   location_text: string;
   lat: number | null;
@@ -45,6 +36,7 @@ type Listing = {
         name: string | null;
         avatar_url: string | null;
         bio: string | null;
+        organization_name?: string | null;
       }
     | null
     | Array<{
@@ -52,6 +44,7 @@ type Listing = {
         name: string | null;
         avatar_url: string | null;
         bio: string | null;
+        organization_name?: string | null;
       }>;
 };
 
@@ -484,6 +477,8 @@ export default function SearchPage() {
                 {items.map((l) => {
                   const saved = wishlistIds.has(l.id);
                   const owner = Array.isArray(l.owner) ? l.owner[0] : l.owner;
+                  const ownerOrganizationName =
+                    owner?.organization_name ?? null;
                   const formattedAvailable = (() => {
                     const parsed = new Date(l.available_until);
                     if (Number.isNaN(parsed.getTime())) return null;
@@ -493,10 +488,16 @@ export default function SearchPage() {
                       year: "numeric",
                     });
                   })();
+                  const weightLbs =
+                    typeof l.approximate_weight_lbs === "number" &&
+                    Number.isFinite(l.approximate_weight_lbs)
+                      ? l.approximate_weight_lbs
+                      : 0;
+                  const co2Kg = calculateCo2eKg(l.type, weightLbs);
                   return (
                     <article
                       key={l.id}
-                      className="group flex h-full flex-col overflow-hidden rounded-3xl border border-white/15 bg-white/10 p-5 text-emerald-100/85 shadow-lg backdrop-blur"
+                      className="group flex h-full flex-col overflow-hidden rounded-3xl border border-white/15 bg-white/10 p-5 text-emerald-100/85 shadow-lg backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-white/30 hover:shadow-emerald-500/20"
                     >
                       <button
                         type="button"
@@ -531,6 +532,12 @@ export default function SearchPage() {
                             {" • "}
                             {l.location_text}
                           </p>
+                          {weightLbs > 0 && (
+                            <p className="text-xs text-emerald-100/70">
+                              ≈ {weightLbs.toLocaleString()} lbs •{" "}
+                              {co2Kg.toFixed(1)} kg CO₂e
+                            </p>
+                          )}
                         </div>
                         {owner && (
                           <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white">
@@ -564,6 +571,11 @@ export default function SearchPage() {
                               <span>
                                 {owner.name ?? "CircularBuild member"}
                               </span>
+                              {ownerOrganizationName && (
+                                <span className="text-xs text-emerald-100/70">
+                                  {ownerOrganizationName}
+                                </span>
+                              )}
                               {owner.bio && (
                                 <span className="text-xs text-emerald-100/70">
                                   {owner.bio}
@@ -581,7 +593,10 @@ export default function SearchPage() {
                               ? "border-emerald-300/60 bg-emerald-500/10 text-emerald-200"
                               : "border-white/20 text-emerald-100/80 hover:border-white hover:text-white"
                           }`}
-                          onClick={() => toggleWishlist(l.id)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void toggleWishlist(l.id);
+                          }}
                         >
                           {saved ? "Saved to wishlist" : "Save to wishlist"}
                         </button>

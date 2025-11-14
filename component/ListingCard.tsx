@@ -11,11 +11,14 @@ export type ListingCardData = {
   tags?: string[];
   location?: string;
   availableLabel?: string;
+  weightLbs?: number | null;
+  co2eKg?: number | null;
   footer?: ReactNode;
   owner?: {
     id: string;
     name?: string | null;
     avatarUrl?: string | null;
+    organizationName?: string | null;
   };
 };
 
@@ -57,6 +60,14 @@ export default function ListingCard({ listing }: Props) {
             {listing.availableLabel}
           </p>
         )}
+        {listing.weightLbs && listing.weightLbs > 0 && (
+          <p className="text-xs text-emerald-100/80">
+            ≈ {listing.weightLbs.toLocaleString()} lbs
+            {typeof listing.co2eKg === "number" && listing.co2eKg > 0
+              ? ` • ${listing.co2eKg.toFixed(1)} kg CO₂e`
+              : ""}
+          </p>
+        )}
         <div className="mt-auto space-y-4">
           {listing.owner && (
             <Link
@@ -89,9 +100,16 @@ export default function ListingCard({ listing }: Props) {
                   </div>
                 )}
               </div>
-              <span className="font-medium">
-                {listing.owner.name ?? "CircularBuild member"}
-              </span>
+              <div className="flex flex-col">
+                <span className="font-medium">
+                  {listing.owner.name ?? "CircularBuild member"}
+                </span>
+                {listing.owner.organizationName && (
+                  <span className="text-xs text-emerald-100/80">
+                    {listing.owner.organizationName}
+                  </span>
+                )}
+              </div>
             </Link>
           )}
           <div>

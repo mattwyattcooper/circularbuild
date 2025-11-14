@@ -4,23 +4,25 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
+import { formatCo2Kg, formatPounds } from "@/lib/diversion";
 import { getOrganizationBySlug } from "@/lib/organizations";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
+type DiversionMetrics = {
+  pounds: number;
+  co2Kg: number;
+  listings: number;
+};
+
 type DiversionSummary = {
-  personal: {
-    donated: { units: number; listings: number };
-    accepted: { units: number; listings: number };
-    totalUnits: number;
-  };
-  organization: {
-    slug: string;
-    name: string;
-    memberCount: number;
-    donated: { units: number; listings: number };
-    accepted: { units: number; listings: number };
-    totalUnits: number;
-  } | null;
+  personal: DiversionMetrics;
+  organization:
+    | (DiversionMetrics & {
+        slug: string;
+        name: string;
+        memberCount: number;
+      })
+    | null;
 };
 
 export default function DiversionStatsPage() {
@@ -81,6 +83,9 @@ export default function DiversionStatsPage() {
 
   const personal = summary?.personal;
   const organization = summary?.organization;
+  const personalPounds = personal?.pounds ?? 0;
+  const personalCo2 = personal?.co2Kg ?? 0;
+  const personalListings = personal?.listings ?? 0;
   const organizationMeta = getOrganizationBySlug(organization?.slug);
 
   return (
@@ -147,27 +152,21 @@ export default function DiversionStatsPage() {
                 </p>
                 <dl className="mt-6 space-y-4 text-emerald-100">
                   <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                    <dt className="text-sm">Donations diverted</dt>
+                    <dt className="text-sm">Pounds diverted</dt>
                     <dd className="text-xl font-semibold text-white">
-                      {personal?.donated.units ?? 0}
-                      <span className="ml-1 text-xs text-emerald-100/70">
-                        units · {personal?.donated.listings ?? 0} listings
-                      </span>
+                      {formatPounds(personalPounds)} lbs
                     </dd>
                   </div>
                   <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                    <dt className="text-sm">Materials accepted</dt>
+                    <dt className="text-sm">CO₂e saved</dt>
                     <dd className="text-xl font-semibold text-white">
-                      {personal?.accepted.units ?? 0}
-                      <span className="ml-1 text-xs text-emerald-100/70">
-                        units · {personal?.accepted.listings ?? 0} listings
-                      </span>
+                      {formatCo2Kg(personalCo2)} kg CO₂e
                     </dd>
                   </div>
                   <div className="flex items-center justify-between rounded-2xl border border-white/20 bg-white/10 px-4 py-3">
-                    <dt className="text-sm">Total diversion</dt>
+                    <dt className="text-sm">Listings processed</dt>
                     <dd className="text-2xl font-bold text-white">
-                      {personal?.totalUnits ?? 0} units
+                      {personalListings}
                     </dd>
                   </div>
                 </dl>
@@ -187,27 +186,21 @@ export default function DiversionStatsPage() {
                     </p>
                     <dl className="mt-6 space-y-4 text-emerald-100">
                       <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                        <dt className="text-sm">Donations diverted</dt>
+                        <dt className="text-sm">Pounds diverted</dt>
                         <dd className="text-xl font-semibold text-white">
-                          {organization.donated.units}
-                          <span className="ml-1 text-xs text-emerald-100/70">
-                            units · {organization.donated.listings} listings
-                          </span>
+                          {formatPounds(organization.pounds)} lbs
                         </dd>
                       </div>
                       <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                        <dt className="text-sm">Materials accepted</dt>
+                        <dt className="text-sm">CO₂e saved</dt>
                         <dd className="text-xl font-semibold text-white">
-                          {organization.accepted.units}
-                          <span className="ml-1 text-xs text-emerald-100/70">
-                            units · {organization.accepted.listings} listings
-                          </span>
+                          {formatCo2Kg(organization.co2Kg)} kg CO₂e
                         </dd>
                       </div>
                       <div className="flex items-center justify-between rounded-2xl border border-white/20 bg-white/10 px-4 py-3">
-                        <dt className="text-sm">Network total</dt>
+                        <dt className="text-sm">Listings processed</dt>
                         <dd className="text-2xl font-bold text-white">
-                          {organization.totalUnits} units
+                          {organization.listings}
                         </dd>
                       </div>
                     </dl>

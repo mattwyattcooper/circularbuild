@@ -2,17 +2,19 @@
 import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/auth/session";
+import { expirePastListings } from "@/lib/listings";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 export async function GET() {
   try {
     const user = await requireUser();
     const supabase = getSupabaseAdminClient();
+    await expirePastListings();
 
     const { data, error } = await supabase
       .from("listings")
       .select(
-        "id,title,type,shape,count,available_until,status,created_at,description",
+        "id,title,type,shape,count,approximate_weight_lbs,available_until,status,created_at,description",
       )
       .eq("owner_id", user.id)
       .order("created_at", { ascending: false });

@@ -40,3 +40,7 @@ export function getOrganizationBySlug(slug?: string | null) {
   if (!slug) return null;
   return ORGANIZATION_PARTNERS.find((org) => org.slug === slug) ?? null;
 }
+
+export function formatOrganizationName(slug?: string | null) {
+  return getOrganizationBySlug(slug)?.name ?? null;
+}

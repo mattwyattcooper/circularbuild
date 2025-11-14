@@ -1,6 +1,8 @@
 // @ts-nocheck
 import { type NextRequest, NextResponse } from "next/server";
 
+import { expirePastListings } from "@/lib/listings";
+import { getOrganizationBySlug } from "@/lib/organizations";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 // Haversine distance in miles
@@ -23,6 +25,8 @@ type ListingRow = {
   title: string;
   type: string;
   shape: string;
+  count: number | null;
+  approximate_weight_lbs: number | null;
   description: string;
   location_text: string | null;
   available_until: string | null;
@@ -35,6 +39,7 @@ type ListingRow = {
 export async function POST(req: NextRequest) {
   try {
     const supabase = getSupabaseAdminClient();
+    await expirePastListings();
 
     const {
       q,
@@ -65,7 +70,7 @@ export async function POST(req: NextRequest) {
     const { data: listings, error } = await supabase
       .from<ListingRow>("listings")
       .select(
-        "id,owner_id,title,type,shape,description,location_text,available_until,photos,lat,lng,created_at",
+        "id,owner_id,title,type,shape,count,approximate_weight_lbs,description,location_text,available_until,photos,lat,lng,created_at",
       )
       .eq("status", "active")
       .order("created_at", { ascending: false });
@@ -114,6 +119,7 @@ export async function POST(req: NextRequest) {
         name: string | null;
         avatar_url: string | null;
         bio: string | null;
+        organization_slug: string | null;
       }
     > = {};
 
@@ -121,7 +127,7 @@ export async function POST(req: NextRequest) {
       try {
         const { data: profileData } = await supabase
           .from("profiles")
-          .select("id,name,avatar_url,bio")
+          .select("id,name,avatar_url,bio,organization_slug")
           .in("id", ownerIds);
         if (profileData) {
           owners = profileData.reduce<typeof owners>((acc, profile) => {
@@ -130,6 +136,7 @@ export async function POST(req: NextRequest) {
               name: profile.name ?? null,
               avatar_url: profile.avatar_url ?? null,
               bio: profile.bio ?? null,
+              organization_slug: profile.organization_slug ?? null,
             };
             return acc;
           }, {});
@@ -139,10 +146,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const enrichedResults = results.map((listing) => ({
-      ...listing,
-      owner: listing.owner_id ? (owners[listing.owner_id] ?? null) : null,
-    }));
+    const enrichedResults = results.map((listing) => {
+      const ownerRecord = listing.owner_id
+        ? (owners[listing.owner_id] ?? null)
+        : null;
+      const organizationName = ownerRecord?.organization_slug
+        ? (getOrganizationBySlug(ownerRecord.organization_slug)?.name ?? null)
+        : null;
+      return {
+        ...listing,
+        owner: ownerRecord
+          ? { ...ownerRecord, organization_name: organizationName }
+          : null,
+      };
+    });
 
     return NextResponse.json({ results: enrichedResults });
   } catch (error) {

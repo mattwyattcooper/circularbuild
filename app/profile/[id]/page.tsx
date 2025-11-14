@@ -4,6 +4,8 @@ import Link from "next/link";
 
 import AuthWall from "@/component/AuthWall";
 import { getOptionalUser } from "@/lib/auth/session";
+import { calculateCo2eKg } from "@/lib/diversion";
+import { expirePastListings } from "@/lib/listings";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +26,7 @@ export default async function ProfileDetailPage({
   params: { id: string };
 }) {
   const user = await getOptionalUser();
+  await expirePastListings();
 
   if (!user) {
     return (
@@ -72,7 +75,9 @@ export default async function ProfileDetailPage({
 
   const { data: listings } = await supabase
     .from("listings")
-    .select("id, title, status, available_until, location_text, photos")
+    .select(
+      "id, title, status, available_until, location_text, photos, type, shape, count, approximate_weight_lbs",
+    )
     .eq("owner_id", profile.id)
     .order("created_at", { ascending: false })
     .limit(12);
@@ -181,39 +186,56 @@ export default async function ProfileDetailPage({
               </p>
             ) : (
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                {activeListings.map((listing) => (
-                  <Link
-                    key={listing.id}
-                    href={`/listing/${listing.id}`}
-                    className="group flex flex-col gap-3 rounded-2xl border border-white/15 bg-white/10 p-5 text-sm text-emerald-100/85 shadow-lg backdrop-blur-lg transition hover:-translate-y-1 hover:border-white hover:text-white"
-                  >
-                    {listing.photos?.[0] ? (
-                      <div className="relative h-40 w-full overflow-hidden rounded-xl">
-                        <Image
-                          src={listing.photos[0]}
-                          alt={listing.title}
-                          fill
-                          className="object-cover transition duration-300 group-hover:scale-[1.02]"
-                        />
+                {activeListings.map((listing) => {
+                  const weightLbs =
+                    typeof listing.approximate_weight_lbs === "number" &&
+                    Number.isFinite(listing.approximate_weight_lbs)
+                      ? listing.approximate_weight_lbs
+                      : 0;
+                  const co2Kg = calculateCo2eKg(listing.type, weightLbs);
+                  return (
+                    <Link
+                      key={listing.id}
+                      href={`/listing/${listing.id}`}
+                      className="group flex flex-col gap-3 rounded-2xl border border-white/15 bg-white/10 p-5 text-sm text-emerald-100/85 shadow-lg backdrop-blur-lg transition hover:-translate-y-1 hover:border-white hover:text-white"
+                    >
+                      {listing.photos?.[0] ? (
+                        <div className="relative h-40 w-full overflow-hidden rounded-xl">
+                          <Image
+                            src={listing.photos[0]}
+                            alt={listing.title}
+                            fill
+                            className="object-cover transition duration-300 group-hover:scale-[1.02]"
+                          />
+                        </div>
+                      ) : (
+                        <div className="grid h-40 w-full place-items-center rounded-xl border border-white/10 bg-white/5 text-xs">
+                          No photo provided
+                        </div>
+                      )}
+                      <div>
+                        <h3 className="text-base font-semibold text-white">
+                          {listing.title}
+                        </h3>
+                        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-emerald-200">
+                          Available until {listing.available_until}
+                        </p>
+                        <p className="mt-1 text-xs text-emerald-100/70">
+                          {listing.location_text}
+                        </p>
+                        <p className="mt-1 text-xs text-emerald-100/70">
+                          {listing.type} • {listing.shape}
+                        </p>
+                        {weightLbs > 0 && (
+                          <p className="text-xs text-emerald-100/70">
+                            ≈ {weightLbs.toLocaleString()} lbs •{" "}
+                            {co2Kg.toFixed(1)} kg CO₂e
+                          </p>
+                        )}
                       </div>
-                    ) : (
-                      <div className="grid h-40 w-full place-items-center rounded-xl border border-white/10 bg-white/5 text-xs">
-                        No photo provided
-                      </div>
-                    )}
-                    <div>
-                      <h3 className="text-base font-semibold text-white">
-                        {listing.title}
-                      </h3>
-                      <p className="mt-1 text-xs uppercase tracking-[0.2em] text-emerald-200">
-                        Available until {listing.available_until}
-                      </p>
-                      <p className="mt-1 text-xs text-emerald-100/70">
-                        {listing.location_text}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -228,25 +250,39 @@ export default async function ProfileDetailPage({
               </p>
             ) : (
               <div className="mt-4 space-y-3">
-                {archivedListings.map((listing) => (
-                  <div
-                    key={listing.id}
-                    className="flex flex-col gap-2 rounded-2xl border border-white/15 bg-white/5 px-4 py-4 text-sm text-emerald-100/80 shadow backdrop-blur"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-semibold text-white">
-                        {listing.title}
+                {archivedListings.map((listing) => {
+                  const weightLbs =
+                    typeof listing.approximate_weight_lbs === "number" &&
+                    Number.isFinite(listing.approximate_weight_lbs)
+                      ? listing.approximate_weight_lbs
+                      : 0;
+                  const co2Kg = calculateCo2eKg(listing.type, weightLbs);
+                  return (
+                    <div
+                      key={listing.id}
+                      className="flex flex-col gap-2 rounded-2xl border border-white/15 bg-white/5 px-4 py-4 text-sm text-emerald-100/80 shadow backdrop-blur"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-semibold text-white">
+                          {listing.title}
+                        </span>
+                        <span className="rounded-full border border-white/20 px-3 py-1 text-xs uppercase tracking-[0.2em]">
+                          {listing.status}
+                        </span>
+                      </div>
+                      <span className="text-xs text-emerald-100/60">
+                        Available until {listing.available_until} •{" "}
+                        {listing.location_text}
                       </span>
-                      <span className="rounded-full border border-white/20 px-3 py-1 text-xs uppercase tracking-[0.2em]">
-                        {listing.status}
-                      </span>
+                      {weightLbs > 0 && (
+                        <span className="text-xs text-emerald-100/60">
+                          ≈ {weightLbs.toLocaleString()} lbs •{" "}
+                          {co2Kg.toFixed(1)} kg CO₂e
+                        </span>
+                      )}
                     </div>
-                    <span className="text-xs text-emerald-100/60">
-                      Available until {listing.available_until} •{" "}
-                      {listing.location_text}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

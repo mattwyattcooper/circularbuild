@@ -17,6 +17,7 @@ export async function POST(request: Request) {
     const type = String(formData.get("type") ?? "").trim();
     const shape = String(formData.get("shape") ?? "").trim();
     const countValue = Number(formData.get("count") ?? 1);
+    const weightValue = Number(formData.get("approximateWeightLbs") ?? NaN);
     const availableUntil = String(formData.get("availableUntil") ?? "").trim();
     const locationText = String(formData.get("locationText") ?? "").trim();
     const description = String(formData.get("description") ?? "").trim();
@@ -28,6 +29,13 @@ export async function POST(request: Request) {
     if (!title || !shape || !availableUntil || !locationText || !signature) {
       return NextResponse.json(
         { error: "Missing required fields." },
+        { status: 400 },
+      );
+    }
+
+    if (!Number.isFinite(weightValue) || weightValue <= 0) {
+      return NextResponse.json(
+        { error: "Approximate weight is required." },
         { status: 400 },
       );
     }
@@ -89,6 +97,7 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
       type,
       shape,
       count,
+      approximate_weight_lbs: weightValue,
       available_until: availableISO,
       location_text: locationText,
       lat: Number.isFinite(lat) ? Number(lat) : null,

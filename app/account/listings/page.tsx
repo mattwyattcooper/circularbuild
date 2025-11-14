@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import ParallaxSection from "@/component/ParallaxSection";
+import { calculateCo2eKg } from "@/lib/diversion";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type ListingRow = {
@@ -12,6 +13,7 @@ type ListingRow = {
   type: string;
   shape: string;
   count: number;
+  approximate_weight_lbs: number | null;
   available_until: string;
   status: string;
   created_at: string;
@@ -22,6 +24,7 @@ type EditDraft = {
   available_until: string;
   count: number;
   description: string;
+  approximate_weight_lbs: string;
 };
 
 export default function MyListingsPage() {
@@ -34,6 +37,7 @@ export default function MyListingsPage() {
     available_until: "",
     count: 1,
     description: "",
+    approximate_weight_lbs: "",
   });
 
   const messageIsError = /error|failed|unable|could not/i.test(msg);
@@ -78,6 +82,9 @@ export default function MyListingsPage() {
       available_until: row.available_until,
       count: row.count,
       description: row.description ?? "",
+      approximate_weight_lbs: row.approximate_weight_lbs
+        ? String(row.approximate_weight_lbs)
+        : "",
     });
   }
 
@@ -91,6 +98,10 @@ export default function MyListingsPage() {
           available_until: draft.available_until,
           count: draft.count,
           description: draft.description,
+          approximate_weight_lbs:
+            Number(draft.approximate_weight_lbs) > 0
+              ? Number(draft.approximate_weight_lbs)
+              : null,
         }),
       });
       const data = (await response.json()) as { error?: string };
@@ -224,6 +235,12 @@ export default function MyListingsPage() {
             <div className="space-y-5">
               {rows.map((row) => {
                 const isEditing = editing === row.id;
+                const weightLbs =
+                  typeof row.approximate_weight_lbs === "number" &&
+                  Number.isFinite(row.approximate_weight_lbs)
+                    ? row.approximate_weight_lbs
+                    : 0;
+                const co2Kg = calculateCo2eKg(row.type, weightLbs);
                 return (
                   <article
                     key={row.id}
@@ -237,6 +254,12 @@ export default function MyListingsPage() {
                         <p className="text-xs text-emerald-100/70">
                           {row.type} • {row.shape} • {row.count} pcs
                         </p>
+                        {weightLbs > 0 && (
+                          <p className="text-xs text-emerald-100/70">
+                            ≈ {weightLbs.toLocaleString()} lbs •{" "}
+                            {co2Kg.toFixed(1)} kg CO₂e
+                          </p>
+                        )}
                         <p className="text-xs text-emerald-100/70">
                           Status:{" "}
                           <span className="font-medium uppercase text-emerald-200">
@@ -311,6 +334,24 @@ export default function MyListingsPage() {
                                 count: Number(e.target.value) || 1,
                               }))
                             }
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                            Approximate weight (lbs)
+                          </span>
+                          <input
+                            type="number"
+                            min={0}
+                            className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                            value={draft.approximate_weight_lbs}
+                            onChange={(e) =>
+                              setDraft((prev) => ({
+                                ...prev,
+                                approximate_weight_lbs: e.target.value,
+                              }))
+                            }
+                            placeholder="Enter a positive number"
                           />
                         </label>
                         <label className="flex flex-col gap-2 sm:col-span-2">

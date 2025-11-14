@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import { cleanListingDescription } from "@/lib/cleanListingDescription";
+import { calculateCo2eKg } from "@/lib/diversion";
+import { getOrganizationBySlug } from "@/lib/organizations";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type ListingOwner = {
@@ -15,6 +17,7 @@ type ListingOwner = {
   name: string | null;
   avatar_url: string | null;
   bio: string | null;
+  organization_slug?: string | null;
 } | null;
 
 type Listing = {
@@ -24,6 +27,7 @@ type Listing = {
   type: string;
   shape: string;
   count: number;
+  approximate_weight_lbs: number | null;
   available_until: string;
   location_text: string;
   description: string;
@@ -161,6 +165,15 @@ export default function ListingDetail() {
   const owner: ListingOwner = l.owner ?? null;
 
   const visibleDescription = cleanListingDescription(l.description);
+  const weightLbs =
+    typeof l.approximate_weight_lbs === "number" &&
+    Number.isFinite(l.approximate_weight_lbs)
+      ? l.approximate_weight_lbs
+      : 0;
+  const co2Kg = calculateCo2eKg(l.type, weightLbs);
+  const ownerOrganizationName = owner?.organization_slug
+    ? (getOrganizationBySlug(owner.organization_slug)?.name ?? null)
+    : null;
 
   return (
     <main className="mx-auto max-w-4xl space-y-8 px-4 py-10 text-white">
@@ -196,6 +209,12 @@ export default function ListingDetail() {
         <div className="text-xs text-emerald-100/70">
           Available until {l.available_until} • {l.location_text}
         </div>
+        {weightLbs > 0 && (
+          <div className="mt-1 text-xs text-emerald-100/70">
+            Approx. {weightLbs.toLocaleString()} lbs • {co2Kg.toFixed(1)} kg
+            CO₂e saved
+          </div>
+        )}
         <p className="mt-4 text-sm leading-6 text-emerald-100/90">
           {visibleDescription || "No additional description provided."}
         </p>
@@ -260,6 +279,11 @@ export default function ListingDetail() {
                 >
                   {owner.name ?? "CircularBuild member"}
                 </Link>
+                {ownerOrganizationName && (
+                  <p className="text-xs text-emerald-100/70">
+                    {ownerOrganizationName}
+                  </p>
+                )}
               </div>
             </div>
             <div className="max-w-xl text-sm text-emerald-100/80">

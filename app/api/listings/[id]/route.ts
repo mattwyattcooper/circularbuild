@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 
 import { getOptionalUser } from "@/lib/auth/session";
+import { expirePastListings } from "@/lib/listings";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 const EMPTY_OWNER = null as {
@@ -9,6 +10,7 @@ const EMPTY_OWNER = null as {
   name: string | null;
   avatar_url: string | null;
   bio: string | null;
+  organization_slug?: string | null;
 } | null;
 
 export async function GET(
@@ -43,7 +45,7 @@ export async function GET(
     if (listing.owner_id) {
       const { data: ownerData } = await supabase
         .from("profiles")
-        .select("id,name,avatar_url,bio")
+        .select("id,name,avatar_url,bio,organization_slug")
         .eq("id", listing.owner_id)
         .maybeSingle();
       owner = ownerData
@@ -52,6 +54,7 @@ export async function GET(
             name: ownerData.name ?? null,
             avatar_url: ownerData.avatar_url ?? null,
             bio: ownerData.bio ?? null,
+            organization_slug: ownerData.organization_slug ?? null,
           }
         : EMPTY_OWNER;
     }
@@ -76,3 +79,4 @@ export async function GET(
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+await expirePastListings();

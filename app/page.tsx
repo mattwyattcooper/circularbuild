@@ -3,6 +3,9 @@ import Link from "next/link";
 
 import HeroSection from "@/component/HeroSection";
 import ListingCard, { type ListingCardData } from "@/component/ListingCard";
+import { calculateCo2eKg } from "@/lib/diversion";
+import { expirePastListings } from "@/lib/listings";
+import { getOrganizationBySlug } from "@/lib/organizations";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 const QUICK_NAV = [
@@ -48,6 +51,8 @@ const PLACEHOLDER_CARDS: ListingCardData[] = [
     tags: ["Wood"],
     location: "Join to view",
     availableLabel: "Availability shared after sign in",
+    weightLbs: 1800,
+    co2eKg: calculateCo2eKg("Wood (dimensional lumber)", 1800),
   },
   {
     id: "placeholder-b",
@@ -56,6 +61,8 @@ const PLACEHOLDER_CARDS: ListingCardData[] = [
     tags: ["Steel"],
     location: "Join to view",
     availableLabel: "Availability shared after sign in",
+    weightLbs: 2400,
+    co2eKg: calculateCo2eKg("Steel (structural, generic carbon)", 2400),
   },
   {
     id: "placeholder-c",
@@ -64,6 +71,8 @@ const PLACEHOLDER_CARDS: ListingCardData[] = [
     tags: ["Fixtures"],
     location: "Join to view",
     availableLabel: "Availability shared after sign in",
+    weightLbs: 600,
+    co2eKg: calculateCo2eKg("Plastic PET (#1)", 600),
   },
   {
     id: "placeholder-d",
@@ -72,6 +81,8 @@ const PLACEHOLDER_CARDS: ListingCardData[] = [
     tags: ["Decking"],
     location: "Join to view",
     availableLabel: "Availability shared after sign in",
+    weightLbs: 950,
+    co2eKg: calculateCo2eKg("Plastic PVC (#3)", 950),
   },
   {
     id: "placeholder-e",
@@ -80,6 +91,8 @@ const PLACEHOLDER_CARDS: ListingCardData[] = [
     tags: ["Mechanical"],
     location: "Join to view",
     availableLabel: "Availability shared after sign in",
+    weightLbs: 1200,
+    co2eKg: calculateCo2eKg("Steel (structural, generic carbon)", 1200),
   },
 ];
 
@@ -108,11 +121,12 @@ function formatAvailableUntil(value?: string | null) {
 
 export default async function Home() {
   const supabase = getSupabaseAdminClient();
+  await expirePastListings();
 
   const { data: listings } = await supabase
     .from("listings")
     .select(
-      "id, owner_id, title, type, shape, location_text, available_until, photos",
+      "id, owner_id, title, type, shape, location_text, available_until, photos, approximate_weight_lbs",
     )
     .eq("status", "active")
     .order("created_at", { ascending: true })
@@ -126,7 +140,12 @@ export default async function Home() {
 
   let owners: Record<
     string,
-    { id: string; name: string | null; avatar_url: string | null }
+    {
+      id: string;
+      name: string | null;
+      avatar_url: string | null;
+      organization_slug: string | null;
+    }
   > = {};
 
   const ownerIds = Array.from(
@@ -140,13 +159,14 @@ export default async function Home() {
   if (ownerIds.length > 0) {
     const { data: ownerRows } = await supabase
       .from("profiles")
-      .select("id,name,avatar_url")
+      .select("id,name,avatar_url,organization_slug")
       .in("id", ownerIds);
     owners = (ownerRows ?? []).reduce<typeof owners>((acc, row) => {
       acc[row.id] = {
         id: row.id,
         name: row.name ?? null,
         avatar_url: row.avatar_url ?? null,
+        organization_slug: row.organization_slug ?? null,
       };
       return acc;
     }, {});
@@ -154,6 +174,11 @@ export default async function Home() {
 
   const cards: ListingCardData[] = (listings ?? []).map((listing) => {
     const formattedAvailable = formatAvailableUntil(listing.available_until);
+    const weightLbs =
+      typeof listing.approximate_weight_lbs === "number" &&
+      Number.isFinite(listing.approximate_weight_lbs)
+        ? listing.approximate_weight_lbs
+        : null;
     return {
       id: listing.id,
       title: listing.title,
@@ -163,12 +188,18 @@ export default async function Home() {
       availableLabel: formattedAvailable
         ? `Available until ${formattedAvailable}`
         : undefined,
+      weightLbs,
+      co2eKg: weightLbs ? calculateCo2eKg(listing.type, weightLbs) : null,
       owner:
         listing.owner_id && owners[listing.owner_id]
           ? {
               id: owners[listing.owner_id].id,
               name: owners[listing.owner_id].name ?? undefined,
               avatarUrl: owners[listing.owner_id].avatar_url ?? undefined,
+              organizationName:
+                getOrganizationBySlug(
+                  owners[listing.owner_id].organization_slug ?? undefined,
+                )?.name ?? undefined,
             }
           : undefined,
     };

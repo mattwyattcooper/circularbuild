@@ -22,6 +22,14 @@ export async function PATCH(
     const updates: Record<string, unknown> = {};
     if (typeof body.available_until === "string") {
       updates.available_until = body.available_until;
+      const today = new Date().toISOString().slice(0, 10);
+      if (body.status === undefined) {
+        if (body.available_until >= today) {
+          updates.status = "active";
+        } else {
+          updates.status = "removed";
+        }
+      }
     }
     if (typeof body.count === "number") {
       updates.count = body.count;
@@ -31,6 +39,10 @@ export async function PATCH(
     }
     if (typeof body.status === "string") {
       updates.status = body.status;
+    }
+    if (typeof body.approximate_weight_lbs === "number") {
+      updates.approximate_weight_lbs =
+        body.approximate_weight_lbs > 0 ? body.approximate_weight_lbs : null;
     }
 
     if (Object.keys(updates).length === 0) {

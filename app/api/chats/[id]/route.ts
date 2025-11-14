@@ -52,7 +52,7 @@ export async function GET(
     if (profileIds.length > 0) {
       const { data: profileRows, error: profileError } = await supabase
         .from("profiles")
-        .select("id,name,avatar_url,bio")
+        .select("id,name,avatar_url,bio,organization_slug")
         .in("id", profileIds);
       if (profileError) {
         return NextResponse.json(

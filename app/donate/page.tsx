@@ -5,19 +5,8 @@ import { type FormEvent, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import ParallaxSection from "@/component/ParallaxSection";
+import { MATERIAL_OPTIONS } from "@/lib/diversion";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-
-const MATERIALS = [
-  "Wood",
-  "Steel",
-  "Aluminum",
-  "Concrete",
-  "Masonry",
-  "Drywall",
-  "Glass",
-  "Plastic",
-  "Other",
-];
 
 // ----- helpers -----
 function todayISO() {
@@ -36,9 +25,10 @@ export default function DonatePage() {
   const authStatus = useRequireAuth();
   // ----- form state -----
   const [title, setTitle] = useState("");
-  const [type, setType] = useState(MATERIALS[0]);
+  const [type, setType] = useState(MATERIAL_OPTIONS[0]);
   const [shape, setShape] = useState("");
   const [count, setCount] = useState<number>(1);
+  const [approxWeight, setApproxWeight] = useState("");
   const [available, setAvailable] = useState(daysFromNowISO(14)); // default 2 weeks ahead
   const [locationText, setLocationText] = useState("");
   const [description, setDescription] = useState("");
@@ -65,6 +55,10 @@ export default function DonatePage() {
       if (!signature.trim()) throw new Error("Signature is required.");
       if (!consentContact)
         throw new Error("Consent to be contacted is required.");
+      const weightValue = Number(approxWeight);
+      if (!Number.isFinite(weightValue) || weightValue <= 0) {
+        throw new Error("Approximate weight (lbs) is required.");
+      }
 
       const availableDate = new Date(available);
       if (Number.isNaN(availableDate.getTime()))
@@ -94,6 +88,7 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
       formData.append("type", type);
       formData.append("shape", shape.trim());
       formData.append("count", String(piecesCount));
+      formData.append("approximateWeightLbs", String(weightValue));
       formData.append("availableUntil", availableISO);
       formData.append("locationText", locationText.trim());
       formData.append("description", detailedDescription);
@@ -122,9 +117,10 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
 
       setMsg(payload?.message ?? "✅ Listing published.");
       setTitle("");
-      setType(MATERIALS[0]);
+      setType(MATERIAL_OPTIONS[0]);
       setShape("");
       setCount(1);
+      setApproxWeight("");
       setAvailable(daysFromNowISO(14));
       setLocationText("");
       setDescription("");
@@ -261,8 +257,10 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
                     value={type}
                     onChange={(e) => setType(e.target.value)}
                   >
-                    {MATERIALS.map((m) => (
-                      <option key={m}>{m}</option>
+                    {MATERIAL_OPTIONS.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
                     ))}
                   </select>
                 </label>
@@ -301,6 +299,24 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
                   />
                   <span className="text-xs text-emerald-100/70">
                     Use the best estimate if you are unsure.
+                  </span>
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                    Approximate weight (lbs) *
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    value={approxWeight}
+                    onChange={(e) => setApproxWeight(e.target.value)}
+                    placeholder="Total combined weight of this donation"
+                    required
+                  />
+                  <span className="text-xs text-emerald-100/70">
+                    We use this to calculate pounds diverted and CO₂e impact.
                   </span>
                 </label>
 

@@ -26,6 +26,7 @@ export default function Header() {
     { label: "Who We Are", href: "/who-we-are" },
     { label: "Marketplace", href: "/search" },
     { label: "Donate", href: "/donate" },
+    { label: "For Organizations", href: "/organizations" },
     {
       label: "Chats",
       href: "/chats",

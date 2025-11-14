@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import ParallaxSection from "@/component/ParallaxSection";
+import { calculateCo2eKg } from "@/lib/diversion";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type SavedListing = {
@@ -16,6 +17,8 @@ type SavedListing = {
     title: string;
     type: string;
     shape: string;
+    count: number | null;
+    approximate_weight_lbs: number | null;
     status: string;
     location_text: string;
     available_until: string;
@@ -187,6 +190,15 @@ export default function WishlistPage() {
             <div className="grid gap-4 md:grid-cols-2">
               {rows.map((row) => {
                 const listing = row.listing;
+                const weightLbs =
+                  listing &&
+                  typeof listing.approximate_weight_lbs === "number" &&
+                  Number.isFinite(listing.approximate_weight_lbs)
+                    ? listing.approximate_weight_lbs
+                    : 0;
+                const co2Kg = listing
+                  ? calculateCo2eKg(listing.type, weightLbs)
+                  : 0;
                 return (
                   <div
                     key={row.id}
@@ -201,8 +213,17 @@ export default function WishlistPage() {
                           {listing?.type} • {listing?.shape}
                         </p>
                         <p className="text-xs text-emerald-100/70">
+                          Status: {listing?.status ?? "Unknown"}
+                        </p>
+                        <p className="text-xs text-emerald-100/70">
                           Available until {listing?.available_until ?? "—"}
                         </p>
+                        {weightLbs > 0 && (
+                          <p className="text-xs text-emerald-100/70">
+                            ≈ {weightLbs.toLocaleString()} lbs •{" "}
+                            {co2Kg.toFixed(1)} kg CO₂e
+                          </p>
+                        )}
                         <p className="text-xs text-emerald-100/60">
                           Saved {new Date(row.created_at).toLocaleString()}
                         </p>
