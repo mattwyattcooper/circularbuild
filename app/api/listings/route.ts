@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/auth/session";
+import { calculateCo2eKg, normalizeMaterialLabel } from "@/lib/diversion";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 function sanitizeFileName(name: string) {
@@ -25,6 +26,13 @@ export async function POST(request: Request) {
     const consentContact = formData.get("consentContact") === "true";
     const latValue = formData.get("lat");
     const lngValue = formData.get("lng");
+    const materialsRaw = formData.get("materials");
+    const isDeconstruction = formData.get("isDeconstruction") === "true";
+    const saleTypeValue = String(formData.get("saleType") ?? "donation").trim();
+    const saleType =
+      saleTypeValue.toLowerCase() === "resale" ? "resale" : "donation";
+    const salePriceValue =
+      saleType === "resale" ? Number(formData.get("salePrice") ?? NaN) : null;
 
     if (!title || !shape || !availableUntil || !locationText || !signature) {
       return NextResponse.json(
@@ -33,16 +41,84 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!Number.isFinite(weightValue) || weightValue <= 0) {
+    if (!consentContact) {
       return NextResponse.json(
-        { error: "Approximate weight is required." },
+        { error: "Consent to be contacted is required." },
         { status: 400 },
       );
     }
 
-    if (!consentContact) {
+    if (saleType === "resale") {
+      if (!Number.isFinite(salePriceValue) || (salePriceValue ?? 0) <= 0) {
+        return NextResponse.json(
+          { error: "A positive resale price is required." },
+          { status: 400 },
+        );
+      }
+    }
+
+    let materials: Array<{
+      type: string;
+      weight_lbs: number;
+      co2e_kg: number;
+    }> = [];
+    if (typeof materialsRaw === "string" && materialsRaw.trim().length > 0) {
+      try {
+        const parsed = JSON.parse(materialsRaw);
+        if (Array.isArray(parsed)) {
+          materials = parsed
+            .map((entry) => {
+              if (!entry || typeof entry !== "object") return null;
+              const entryType = normalizeMaterialLabel(
+                typeof entry.type === "string"
+                  ? entry.type
+                  : typeof entry.material === "string"
+                    ? entry.material
+                    : null,
+              );
+              const weight = Number(entry.weightLbs ?? entry.weight_lbs);
+              if (
+                !entryType ||
+                !Number.isFinite(weight) ||
+                Number(weight) <= 0
+              ) {
+                return null;
+              }
+              return {
+                type: entryType,
+                weight_lbs: Number(weight.toFixed(2)),
+                co2e_kg: calculateCo2eKg(entryType, weight),
+              };
+            })
+            .filter(
+              (
+                entry,
+              ): entry is {
+                type: string;
+                weight_lbs: number;
+                co2e_kg: number;
+              } => !!entry,
+            );
+        }
+      } catch (error) {
+        console.error("Failed to parse materials payload", error);
+        return NextResponse.json(
+          { error: "Invalid materials payload." },
+          { status: 400 },
+        );
+      }
+    }
+
+    const materialsWeight = materials.reduce(
+      (sum, entry) => sum + entry.weight_lbs,
+      0,
+    );
+    const approximateWeight =
+      materialsWeight > 0 ? materialsWeight : weightValue;
+
+    if (!Number.isFinite(approximateWeight) || approximateWeight <= 0) {
       return NextResponse.json(
-        { error: "Consent to be contacted is required." },
+        { error: "Approximate weight is required." },
         { status: 400 },
       );
     }
@@ -97,7 +173,14 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
       type,
       shape,
       count,
-      approximate_weight_lbs: weightValue,
+      approximate_weight_lbs: Number(approximateWeight.toFixed(2)),
+      materials: materials.length ? materials : null,
+      is_deconstruction: isDeconstruction,
+      sale_type: saleType,
+      sale_price:
+        saleType === "resale" && salePriceValue
+          ? Number(salePriceValue.toFixed(2))
+          : null,
       available_until: availableISO,
       location_text: locationText,
       lat: Number.isFinite(lat) ? Number(lat) : null,

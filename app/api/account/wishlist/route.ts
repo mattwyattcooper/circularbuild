@@ -11,7 +11,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("wishlists")
       .select(
-        "id, listing_id, created_at, listing:listings(id, title, type, shape, status, location_text, available_until, photos, approximate_weight_lbs, count)",
+        "id, listing_id, created_at, listing:listings(id, title, type, shape, status, location_text, available_until, photos, approximate_weight_lbs, count, materials, is_deconstruction, sale_type, sale_price)",
       )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });

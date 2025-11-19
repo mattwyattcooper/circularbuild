@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import ParallaxSection from "@/component/ParallaxSection";
-import { calculateCo2eKg } from "@/lib/diversion";
+import { summarizeListingMaterials } from "@/lib/diversion";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type ListingRow = {
@@ -18,6 +18,10 @@ type ListingRow = {
   status: string;
   created_at: string;
   description: string | null;
+  materials?: unknown;
+  is_deconstruction?: boolean | null;
+  sale_type?: string | null;
+  sale_price?: number | null;
 };
 
 type EditDraft = {
@@ -235,12 +239,17 @@ export default function MyListingsPage() {
             <div className="space-y-5">
               {rows.map((row) => {
                 const isEditing = editing === row.id;
-                const weightLbs =
-                  typeof row.approximate_weight_lbs === "number" &&
-                  Number.isFinite(row.approximate_weight_lbs)
-                    ? row.approximate_weight_lbs
-                    : 0;
-                const co2Kg = calculateCo2eKg(row.type, weightLbs);
+                const saleType =
+                  row.sale_type === "resale" ? "resale" : ("donation" as const);
+                const salePrice =
+                  saleType === "resale" && row.sale_price
+                    ? Number(row.sale_price)
+                    : null;
+                const {
+                  entries: materials,
+                  totalWeight,
+                  totalCo2,
+                } = summarizeListingMaterials(row);
                 return (
                   <article
                     key={row.id}
@@ -251,13 +260,63 @@ export default function MyListingsPage() {
                         <h2 className="text-lg font-semibold text-white">
                           {row.title}
                         </h2>
+                        <div className="mt-1 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-emerald-100/80">
+                          <span
+                            className={`rounded-full border px-3 py-1 ${
+                              saleType === "resale"
+                                ? "border-amber-200/60 bg-amber-500/10 text-amber-100"
+                                : "border-emerald-200/40 bg-emerald-500/10 text-emerald-100"
+                            }`}
+                          >
+                            {saleType === "resale" ? "Resale" : "Donation"}
+                          </span>
+                          {row.is_deconstruction && (
+                            <span className="rounded-full border border-cyan-200/60 bg-cyan-500/10 px-3 py-1 text-cyan-100">
+                              Deconstruction
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-emerald-100/70">
                           {row.type} • {row.shape} • {row.count} pcs
                         </p>
-                        {weightLbs > 0 && (
+                        {materials.length > 0 && (
+                          <div className="mt-1 space-y-1 text-xs text-emerald-100/75">
+                            {materials.slice(0, 3).map((material) => (
+                              <p
+                                key={`${material.type}-${material.weight_lbs}`}
+                              >
+                                {material.type} —{" "}
+                                {material.weight_lbs.toLocaleString()} lbs
+                                {material.co2e_kg > 0
+                                  ? ` • ${material.co2e_kg.toFixed(1)} kg CO₂e`
+                                  : ""}
+                              </p>
+                            ))}
+                            {materials.length > 3 && (
+                              <p className="text-emerald-100/50">
+                                +{materials.length - 3} more material
+                                {materials.length - 3 > 1 ? "s" : ""}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {totalWeight > 0 && (
                           <p className="text-xs text-emerald-100/70">
-                            ≈ {weightLbs.toLocaleString()} lbs •{" "}
-                            {co2Kg.toFixed(1)} kg CO₂e
+                            Total ≈ {totalWeight.toLocaleString()} lbs •{" "}
+                            {totalCo2.toFixed(1)} kg CO₂e
+                          </p>
+                        )}
+                        {saleType === "resale" && (
+                          <p className="text-xs text-amber-100/80">
+                            {salePrice
+                              ? `Requested $${salePrice.toLocaleString(
+                                  undefined,
+                                  {
+                                    maximumFractionDigits: 0,
+                                  },
+                                )}. `
+                              : ""}
+                            Payment negotiated offline only.
                           </p>
                         )}
                         <p className="text-xs text-emerald-100/70">

@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import HeroSection from "@/component/HeroSection";
 import ListingCard, { type ListingCardData } from "@/component/ListingCard";
-import { calculateCo2eKg } from "@/lib/diversion";
+import { calculateCo2eKg, summarizeListingMaterials } from "@/lib/diversion";
 import { expirePastListings } from "@/lib/listings";
 import { getOrganizationBySlug } from "@/lib/organizations";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
@@ -51,8 +51,16 @@ const PLACEHOLDER_CARDS: ListingCardData[] = [
     tags: ["Wood"],
     location: "Join to view",
     availableLabel: "Availability shared after sign in",
-    weightLbs: 1800,
-    co2eKg: calculateCo2eKg("Wood (dimensional lumber)", 1800),
+    totalWeightLbs: 1800,
+    totalCo2eKg: calculateCo2eKg("Wood (dimensional lumber)", 1800),
+    materials: [
+      {
+        type: "Wood (dimensional lumber)",
+        weight_lbs: 1800,
+        co2e_kg: calculateCo2eKg("Wood (dimensional lumber)", 1800),
+      },
+    ],
+    saleType: "donation",
   },
   {
     id: "placeholder-b",
@@ -61,8 +69,16 @@ const PLACEHOLDER_CARDS: ListingCardData[] = [
     tags: ["Steel"],
     location: "Join to view",
     availableLabel: "Availability shared after sign in",
-    weightLbs: 2400,
-    co2eKg: calculateCo2eKg("Steel (structural, generic carbon)", 2400),
+    totalWeightLbs: 2400,
+    totalCo2eKg: calculateCo2eKg("Steel (structural, generic carbon)", 2400),
+    materials: [
+      {
+        type: "Steel (structural, generic carbon)",
+        weight_lbs: 2400,
+        co2e_kg: calculateCo2eKg("Steel (structural, generic carbon)", 2400),
+      },
+    ],
+    saleType: "donation",
   },
   {
     id: "placeholder-c",
@@ -71,8 +87,16 @@ const PLACEHOLDER_CARDS: ListingCardData[] = [
     tags: ["Fixtures"],
     location: "Join to view",
     availableLabel: "Availability shared after sign in",
-    weightLbs: 600,
-    co2eKg: calculateCo2eKg("Plastic PET (#1)", 600),
+    totalWeightLbs: 600,
+    totalCo2eKg: calculateCo2eKg("Plastic PET (#1)", 600),
+    materials: [
+      {
+        type: "Plastic PET (#1)",
+        weight_lbs: 600,
+        co2e_kg: calculateCo2eKg("Plastic PET (#1)", 600),
+      },
+    ],
+    saleType: "donation",
   },
   {
     id: "placeholder-d",
@@ -81,8 +105,16 @@ const PLACEHOLDER_CARDS: ListingCardData[] = [
     tags: ["Decking"],
     location: "Join to view",
     availableLabel: "Availability shared after sign in",
-    weightLbs: 950,
-    co2eKg: calculateCo2eKg("Plastic PVC (#3)", 950),
+    totalWeightLbs: 950,
+    totalCo2eKg: calculateCo2eKg("Plastic PVC (#3)", 950),
+    materials: [
+      {
+        type: "Plastic PVC (#3)",
+        weight_lbs: 950,
+        co2e_kg: calculateCo2eKg("Plastic PVC (#3)", 950),
+      },
+    ],
+    saleType: "donation",
   },
   {
     id: "placeholder-e",
@@ -91,8 +123,16 @@ const PLACEHOLDER_CARDS: ListingCardData[] = [
     tags: ["Mechanical"],
     location: "Join to view",
     availableLabel: "Availability shared after sign in",
-    weightLbs: 1200,
-    co2eKg: calculateCo2eKg("Steel (structural, generic carbon)", 1200),
+    totalWeightLbs: 1200,
+    totalCo2eKg: calculateCo2eKg("Steel (structural, generic carbon)", 1200),
+    materials: [
+      {
+        type: "Steel (structural, generic carbon)",
+        weight_lbs: 1200,
+        co2e_kg: calculateCo2eKg("Steel (structural, generic carbon)", 1200),
+      },
+    ],
+    saleType: "donation",
   },
 ];
 
@@ -126,7 +166,7 @@ export default async function Home() {
   const { data: listings } = await supabase
     .from("listings")
     .select(
-      "id, owner_id, title, type, shape, location_text, available_until, photos, approximate_weight_lbs",
+      "id, owner_id, title, type, shape, location_text, available_until, photos, approximate_weight_lbs, materials, is_deconstruction, sale_type, sale_price",
     )
     .eq("status", "active")
     .order("created_at", { ascending: true })
@@ -174,11 +214,8 @@ export default async function Home() {
 
   const cards: ListingCardData[] = (listings ?? []).map((listing) => {
     const formattedAvailable = formatAvailableUntil(listing.available_until);
-    const weightLbs =
-      typeof listing.approximate_weight_lbs === "number" &&
-      Number.isFinite(listing.approximate_weight_lbs)
-        ? listing.approximate_weight_lbs
-        : null;
+    const { entries, totalWeight, totalCo2 } =
+      summarizeListingMaterials(listing);
     return {
       id: listing.id,
       title: listing.title,
@@ -188,8 +225,14 @@ export default async function Home() {
       availableLabel: formattedAvailable
         ? `Available until ${formattedAvailable}`
         : undefined,
-      weightLbs,
-      co2eKg: weightLbs ? calculateCo2eKg(listing.type, weightLbs) : null,
+      totalWeightLbs: totalWeight || null,
+      totalCo2eKg: totalCo2 || null,
+      materials: entries,
+      isDeconstruction: Boolean(listing.is_deconstruction),
+      saleType:
+        listing.sale_type === "resale" ? "resale" : ("donation" as const),
+      salePrice:
+        typeof listing.sale_price === "number" ? listing.sale_price : null,
       owner:
         listing.owner_id && owners[listing.owner_id]
           ? {

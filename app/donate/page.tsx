@@ -21,14 +21,18 @@ function daysFromNowISO(days: number) {
   return d.toISOString().slice(0, 10);
 }
 
+const MAX_MATERIAL_ENTRIES = 4;
+type MaterialEntry = { material: string; weight: string };
+
 export default function DonatePage() {
   const authStatus = useRequireAuth();
   // ----- form state -----
   const [title, setTitle] = useState("");
-  const [type, setType] = useState(MATERIAL_OPTIONS[0]);
   const [shape, setShape] = useState("");
   const [count, setCount] = useState<number>(1);
-  const [approxWeight, setApproxWeight] = useState("");
+  const [materials, setMaterials] = useState<MaterialEntry[]>([
+    { material: MATERIAL_OPTIONS[0], weight: "" },
+  ]);
   const [available, setAvailable] = useState(daysFromNowISO(14)); // default 2 weeks ahead
   const [locationText, setLocationText] = useState("");
   const [description, setDescription] = useState("");
@@ -36,10 +40,36 @@ export default function DonatePage() {
   const [signature, setSignature] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [consentContact, setConsentContact] = useState(false);
+  const [isDeconstruction, setIsDeconstruction] = useState(false);
+  const [saleType, setSaleType] = useState<"donation" | "resale">("donation");
+  const [salePrice, setSalePrice] = useState("");
 
   // ----- ui state -----
   const [msg, setMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const addMaterialEntry = () => {
+    setMaterials((prev) => {
+      if (prev.length >= MAX_MATERIAL_ENTRIES) return prev;
+      return [...prev, { material: MATERIAL_OPTIONS[0], weight: "" }];
+    });
+  };
+
+  const updateMaterialEntry = (
+    index: number,
+    payload: Partial<MaterialEntry>,
+  ) => {
+    setMaterials((prev) =>
+      prev.map((entry, i) => (i === index ? { ...entry, ...payload } : entry)),
+    );
+  };
+
+  const removeMaterialEntry = (index: number) => {
+    setMaterials((prev) => {
+      if (prev.length === 1) return prev;
+      return prev.filter((_, i) => i !== index);
+    });
+  };
 
   async function submit() {
     setMsg("");
@@ -55,10 +85,43 @@ export default function DonatePage() {
       if (!signature.trim()) throw new Error("Signature is required.");
       if (!consentContact)
         throw new Error("Consent to be contacted is required.");
-      const weightValue = Number(approxWeight);
-      if (!Number.isFinite(weightValue) || weightValue <= 0) {
+
+      const normalizedMaterials = materials
+        .map((entry) => ({
+          type: entry.material,
+          weightLbs: Number(entry.weight),
+        }))
+        .filter(
+          (entry) =>
+            entry.type &&
+            Number.isFinite(entry.weightLbs) &&
+            entry.weightLbs > 0,
+        );
+
+      if (normalizedMaterials.length === 0) {
+        throw new Error("Please include at least one material with a weight.");
+      }
+
+      const totalWeight = normalizedMaterials.reduce(
+        (sum, entry) => sum + entry.weightLbs,
+        0,
+      );
+
+      if (totalWeight <= 0) {
         throw new Error("Approximate weight (lbs) is required.");
       }
+
+      let salePriceValue: number | null = null;
+      if (saleType === "resale") {
+        const parsed = Number(salePrice);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+          throw new Error("Please enter a positive asking price.");
+        }
+        salePriceValue = parsed;
+      }
+
+      const primaryMaterial =
+        normalizedMaterials[0]?.type ?? MATERIAL_OPTIONS[0];
 
       const availableDate = new Date(available);
       if (Number.isNaN(availableDate.getTime()))
@@ -85,10 +148,16 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
 
       const formData = new FormData();
       formData.append("title", title.trim());
-      formData.append("type", type);
+      formData.append("type", primaryMaterial);
       formData.append("shape", shape.trim());
       formData.append("count", String(piecesCount));
-      formData.append("approximateWeightLbs", String(weightValue));
+      formData.append("approximateWeightLbs", String(totalWeight));
+      formData.append("materials", JSON.stringify(normalizedMaterials));
+      formData.append("isDeconstruction", String(isDeconstruction));
+      formData.append("saleType", saleType);
+      if (saleType === "resale" && salePriceValue) {
+        formData.append("salePrice", String(salePriceValue));
+      }
       formData.append("availableUntil", availableISO);
       formData.append("locationText", locationText.trim());
       formData.append("description", detailedDescription);
@@ -117,16 +186,18 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
 
       setMsg(payload?.message ?? "✅ Listing published.");
       setTitle("");
-      setType(MATERIAL_OPTIONS[0]);
+      setMaterials([{ material: MATERIAL_OPTIONS[0], weight: "" }]);
       setShape("");
       setCount(1);
-      setApproxWeight("");
       setAvailable(daysFromNowISO(14));
       setLocationText("");
       setDescription("");
       setSignature("");
       setAgreed(false);
       setConsentContact(false);
+      setIsDeconstruction(false);
+      setSaleType("donation");
+      setSalePrice("");
       const el = document.getElementById("photos") as HTMLInputElement | null;
       if (el) el.value = "";
       setFiles(null);
@@ -250,23 +321,6 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
 
                 <label className="flex flex-col gap-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
-                    Material type *
-                  </span>
-                  <select
-                    className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                    value={type}
-                    onChange={(e) => setType(e.target.value)}
-                  >
-                    {MATERIAL_OPTIONS.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="flex flex-col gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
                     Shape *
                   </span>
                   <input
@@ -304,24 +358,6 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
 
                 <label className="flex flex-col gap-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
-                    Approximate weight (lbs) *
-                  </span>
-                  <input
-                    type="number"
-                    min={1}
-                    className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                    value={approxWeight}
-                    onChange={(e) => setApproxWeight(e.target.value)}
-                    placeholder="Total combined weight of this donation"
-                    required
-                  />
-                  <span className="text-xs text-emerald-100/70">
-                    We use this to calculate pounds diverted and CO₂e impact.
-                  </span>
-                </label>
-
-                <label className="flex flex-col gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
                     Available until *
                   </span>
                   <input
@@ -346,6 +382,131 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
                     required
                   />
                 </label>
+              </div>
+
+              <div className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-6 shadow-inner">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">
+                      Materials & approximate weight*
+                    </p>
+                    <p className="text-xs text-emerald-100/70">
+                      Add up to four material/weight combinations for bulk{" "}
+                      listings.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100/80 transition hover:border-white hover:text-white"
+                    onClick={addMaterialEntry}
+                    disabled={materials.length >= MAX_MATERIAL_ENTRIES}
+                  >
+                    Add material
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {materials.map((entry, index) => (
+                    <div
+                      key={`${entry.material}-${index}`}
+                      className="grid gap-4 sm:grid-cols-2"
+                    >
+                      <label className="flex flex-col gap-2 text-sm">
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                          Material #{index + 1}
+                        </span>
+                        <select
+                          className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                          value={entry.material}
+                          onChange={(e) =>
+                            updateMaterialEntry(index, {
+                              material: e.target.value,
+                            })
+                          }
+                        >
+                          {MATERIAL_OPTIONS.map((m) => (
+                            <option key={m} value={m}>
+                              {m}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-2 text-sm">
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                          Approximate weight (lbs)
+                        </span>
+                        <input
+                          type="number"
+                          min={1}
+                          className="rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                          value={entry.weight}
+                          onChange={(e) =>
+                            updateMaterialEntry(index, {
+                              weight: e.target.value,
+                            })
+                          }
+                          placeholder="e.g., 1200"
+                        />
+                      </label>
+                      {materials.length > 1 && (
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-rose-200 transition hover:text-white"
+                          onClick={() => removeMaterialEntry(index)}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-6 sm:grid-cols-2">
+                <label className="flex items-start gap-3 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-emerald-100/85">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-white/40 bg-white/20 text-emerald-500 focus:ring-emerald-400"
+                    checked={isDeconstruction}
+                    onChange={(e) => setIsDeconstruction(e.target.checked)}
+                  />
+                  <span>
+                    Mark as a <strong>deconstruction listing</strong>. These
+                    posts are highlighted for builders seeking full-structure
+                    dismantles.
+                  </span>
+                </label>
+                <div className="rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-emerald-100/85">
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-white/40 bg-white/20 text-emerald-500 focus:ring-emerald-400"
+                      checked={saleType === "resale"}
+                      onChange={(e) =>
+                        setSaleType(e.target.checked ? "resale" : "donation")
+                      }
+                    />
+                    <span>
+                      Offer as <strong>resale</strong> (payment negotiated in
+                      person).
+                    </span>
+                  </label>
+                  {saleType === "resale" && (
+                    <div className="mt-4 space-y-2">
+                      <input
+                        type="number"
+                        min={1}
+                        className="w-full rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        placeholder="Asking price (USD)"
+                        value={salePrice}
+                        onChange={(e) => setSalePrice(e.target.value)}
+                      />
+                      <p className="text-xs text-emerald-100/70">
+                        Payments are renegotiable and must be exchanged in
+                        person. Transactions do not run through CircularBuild.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="grid gap-6">

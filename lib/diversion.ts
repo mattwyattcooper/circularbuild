@@ -64,3 +64,99 @@ export function formatCo2Kg(value: number) {
   if (!Number.isFinite(value)) return "0";
   return value.toLocaleString(undefined, { maximumFractionDigits: 1 });
 }
+
+export type MaterialStat = {
+  type: string;
+  weight_lbs: number;
+  co2e_kg: number;
+};
+
+function safeParseJSON(value: unknown) {
+  if (typeof value !== "string") return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+export function parseMaterialStats(value: unknown): MaterialStat[] {
+  const rawEntries = Array.isArray(value) ? value : safeParseJSON(value);
+  if (!Array.isArray(rawEntries)) return [];
+
+  return rawEntries
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const label = normalizeMaterialLabel(
+        typeof (entry as Record<string, unknown>).type === "string"
+          ? (entry as Record<string, unknown>).type
+          : typeof (entry as Record<string, unknown>).material === "string"
+            ? (entry as Record<string, unknown>).material
+            : null,
+      );
+      if (!label) return null;
+      const weightCandidate =
+        typeof (entry as Record<string, unknown>).weight_lbs === "number"
+          ? (entry as Record<string, unknown>).weight_lbs
+          : typeof (entry as Record<string, unknown>).weightLbs === "number"
+            ? (entry as Record<string, unknown>).weightLbs
+            : Number(
+                (entry as Record<string, unknown>).weight ??
+                  (entry as Record<string, unknown>).weight_lb ??
+                  (entry as Record<string, unknown>).weightLb,
+              );
+      if (!Number.isFinite(weightCandidate) || weightCandidate <= 0) {
+        return null;
+      }
+      const co2Value =
+        typeof (entry as Record<string, unknown>).co2e_kg === "number"
+          ? (entry as Record<string, unknown>).co2e_kg
+          : Number(
+              (entry as Record<string, unknown>).co2 ??
+                (entry as Record<string, unknown>).co2e ??
+                (entry as Record<string, unknown>).co2Kg,
+            );
+      const co2e =
+        Number.isFinite(co2Value) && co2Value >= 0
+          ? Number(co2Value)
+          : calculateCo2eKg(label, weightCandidate);
+      return {
+        type: label,
+        weight_lbs: Number(weightCandidate.toFixed(2)),
+        co2e_kg: Number(co2e.toFixed(2)),
+      } satisfies MaterialStat;
+    })
+    .filter((entry): entry is MaterialStat => entry !== null);
+}
+
+export function summarizeListingMaterials(listing: {
+  materials?: unknown;
+  approximate_weight_lbs?: number | null;
+  type?: string | null;
+}) {
+  const entries = parseMaterialStats(listing.materials);
+
+  if (entries.length === 0) {
+    const fallbackWeight = Number(listing.approximate_weight_lbs);
+    if (Number.isFinite(fallbackWeight) && fallbackWeight > 0) {
+      const fallbackType =
+        normalizeMaterialLabel(listing.type ?? "") ??
+        listing.type ??
+        "Materials";
+      entries.push({
+        type: fallbackType,
+        weight_lbs: Number(fallbackWeight.toFixed(2)),
+        co2e_kg: calculateCo2eKg(fallbackType, fallbackWeight),
+      });
+    }
+  }
+
+  const totalWeight = entries.reduce((sum, entry) => sum + entry.weight_lbs, 0);
+  const totalCo2 = entries.reduce((sum, entry) => sum + entry.co2e_kg, 0);
+
+  return {
+    entries,
+    totalWeight: Number(totalWeight.toFixed(2)),
+    totalCo2: Number(totalCo2.toFixed(2)),
+  };
+}

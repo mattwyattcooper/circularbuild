@@ -7,7 +7,7 @@ import type { KeyboardEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
-import { calculateCo2eKg, MATERIAL_OPTIONS } from "@/lib/diversion";
+import { MATERIAL_OPTIONS, summarizeListingMaterials } from "@/lib/diversion";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 const ListingMap = dynamic(() => import("@/component/ListingMap"), {
@@ -30,6 +30,10 @@ type Listing = {
   description: string;
   photos: string[] | null;
   created_at: string;
+  materials?: unknown;
+  is_deconstruction?: boolean | null;
+  sale_type?: string | null;
+  sale_price?: number | null;
   owner?:
     | {
         id: string;
@@ -488,12 +492,17 @@ export default function SearchPage() {
                       year: "numeric",
                     });
                   })();
-                  const weightLbs =
-                    typeof l.approximate_weight_lbs === "number" &&
-                    Number.isFinite(l.approximate_weight_lbs)
-                      ? l.approximate_weight_lbs
-                      : 0;
-                  const co2Kg = calculateCo2eKg(l.type, weightLbs);
+                  const saleType =
+                    l.sale_type === "resale" ? "resale" : ("donation" as const);
+                  const salePrice =
+                    saleType === "resale" && typeof l.sale_price === "number"
+                      ? l.sale_price
+                      : null;
+                  const {
+                    entries: materials,
+                    totalWeight,
+                    totalCo2,
+                  } = summarizeListingMaterials(l);
                   return (
                     <article
                       key={l.id}
@@ -522,6 +531,22 @@ export default function SearchPage() {
                           <h2 className="text-lg font-semibold text-white">
                             {l.title}
                           </h2>
+                          <div className="flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-100/80">
+                            <span
+                              className={`rounded-full border px-3 py-1 ${
+                                saleType === "resale"
+                                  ? "border-amber-200/60 bg-amber-500/10 text-amber-100"
+                                  : "border-emerald-200/40 bg-emerald-500/10 text-emerald-100"
+                              }`}
+                            >
+                              {saleType === "resale" ? "Resale" : "Donation"}
+                            </span>
+                            {l.is_deconstruction && (
+                              <span className="rounded-full border border-cyan-200/60 bg-cyan-500/10 px-3 py-1 text-cyan-100">
+                                Deconstruction
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-emerald-100/80">
                             {l.type} • {l.shape} • {l.count} pcs
                           </p>
@@ -532,10 +557,47 @@ export default function SearchPage() {
                             {" • "}
                             {l.location_text}
                           </p>
-                          {weightLbs > 0 && (
+                          {materials.length > 0 && (
+                            <div className="space-y-1 pt-1 text-xs text-emerald-100/75">
+                              {materials.slice(0, 3).map((material) => (
+                                <p
+                                  key={`${material.type}-${material.weight_lbs}`}
+                                >
+                                  {material.type} —{" "}
+                                  {material.weight_lbs.toLocaleString()} lbs
+                                  {material.co2e_kg > 0
+                                    ? ` • ${material.co2e_kg.toFixed(1)} kg CO₂e`
+                                    : ""}
+                                </p>
+                              ))}
+                              {materials.length > 3 && (
+                                <p className="text-emerald-100/60">
+                                  +{materials.length - 3} more material
+                                  {materials.length - 3 > 1 ? "s" : ""}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {totalWeight > 0 && (
                             <p className="text-xs text-emerald-100/70">
-                              ≈ {weightLbs.toLocaleString()} lbs •{" "}
-                              {co2Kg.toFixed(1)} kg CO₂e
+                              Total ≈ {totalWeight.toLocaleString()} lbs
+                              {totalCo2 > 0
+                                ? ` • ${totalCo2.toFixed(1)} kg CO₂e`
+                                : ""}
+                            </p>
+                          )}
+                          {saleType === "resale" && (
+                            <p className="text-xs text-amber-100/80">
+                              {salePrice
+                                ? `Requested $${salePrice.toLocaleString(
+                                    undefined,
+                                    {
+                                      maximumFractionDigits: 0,
+                                    },
+                                  )}. `
+                                : ""}
+                              Payment terms are negotiated in person. Funds
+                              never move through CircularBuild.
                             </p>
                           )}
                         </div>

@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import type { MaterialStat } from "@/lib/diversion";
+
 export type ListingCardData = {
   id: string;
   title: string;
@@ -11,8 +13,12 @@ export type ListingCardData = {
   tags?: string[];
   location?: string;
   availableLabel?: string;
-  weightLbs?: number | null;
-  co2eKg?: number | null;
+  totalWeightLbs?: number | null;
+  totalCo2eKg?: number | null;
+  materials?: MaterialStat[];
+  isDeconstruction?: boolean;
+  saleType?: "donation" | "resale";
+  salePrice?: number | null;
   footer?: ReactNode;
   owner?: {
     id: string;
@@ -27,6 +33,13 @@ type Props = {
 };
 
 export default function ListingCard({ listing }: Props) {
+  const saleType = listing.saleType === "resale" ? "resale" : "donation";
+  const materialPreview = (listing.materials ?? []).slice(0, 2);
+  const remainingMaterials =
+    (listing.materials?.length ?? 0) - materialPreview.length;
+  const hasTotalCo2 =
+    typeof listing.totalCo2eKg === "number" && listing.totalCo2eKg > 0;
+
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-3xl border border-white/15 bg-white/10 text-white shadow-lg backdrop-blur transition hover:-translate-y-1 hover:shadow-xl">
       <div className="relative aspect-[5/3] w-full overflow-hidden">
@@ -46,6 +59,24 @@ export default function ListingCard({ listing }: Props) {
             <p className="text-sm text-emerald-100/80">{listing.location}</p>
           )}
         </div>
+        {(listing.saleType || listing.isDeconstruction) && (
+          <div className="flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-100/80">
+            <span
+              className={`rounded-full border px-3 py-1 ${
+                saleType === "resale"
+                  ? "border-amber-200/60 bg-amber-500/15 text-amber-100"
+                  : "border-emerald-200/40 bg-emerald-500/15 text-emerald-100"
+              }`}
+            >
+              {saleType === "resale" ? "Resale" : "Donation"}
+            </span>
+            {listing.isDeconstruction && (
+              <span className="rounded-full border border-cyan-200/60 bg-cyan-500/15 px-3 py-1 text-cyan-100">
+                Deconstruction
+              </span>
+            )}
+          </div>
+        )}
         {listing.tags?.length ? (
           <div className="flex flex-wrap gap-2 text-xs text-emerald-100/90">
             {listing.tags.map((tag) => (
@@ -60,12 +91,39 @@ export default function ListingCard({ listing }: Props) {
             {listing.availableLabel}
           </p>
         )}
-        {listing.weightLbs && listing.weightLbs > 0 && (
-          <p className="text-xs text-emerald-100/80">
-            ≈ {listing.weightLbs.toLocaleString()} lbs
-            {typeof listing.co2eKg === "number" && listing.co2eKg > 0
-              ? ` • ${listing.co2eKg.toFixed(1)} kg CO₂e`
+        {materialPreview.length > 0 && (
+          <div className="space-y-1 text-xs text-emerald-100/80">
+            {materialPreview.map((material) => (
+              <p key={`${material.type}-${material.weight_lbs}`}>
+                {material.type} — {material.weight_lbs.toLocaleString()} lbs
+                {material.co2e_kg > 0
+                  ? ` • ${material.co2e_kg.toFixed(1)} kg CO₂e`
+                  : ""}
+              </p>
+            ))}
+            {remainingMaterials > 0 && (
+              <p className="text-emerald-100/60">
+                +{remainingMaterials} more material
+                {remainingMaterials > 1 ? "s" : ""}
+              </p>
+            )}
+          </div>
+        )}
+        {listing.totalWeightLbs && listing.totalWeightLbs > 0 && (
+          <p className="text-xs text-emerald-100/70">
+            Total ≈ {listing.totalWeightLbs.toLocaleString()} lbs
+            {hasTotalCo2 ? ` • ${listing.totalCo2eKg?.toFixed(1)} kg CO₂e` : ""}
+          </p>
+        )}
+        {saleType === "resale" && (
+          <p className="text-xs text-amber-100/90">
+            {listing.salePrice
+              ? `Requested $${listing.salePrice.toLocaleString(undefined, {
+                  maximumFractionDigits: 0,
+                })}. `
               : ""}
+            Payments are negotiated offline and never processed by
+            CircularBuild.
           </p>
         )}
         <div className="mt-auto space-y-4">

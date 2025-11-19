@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/auth/session";
-import { calculateCo2eKg } from "@/lib/diversion";
+import { summarizeListingMaterials } from "@/lib/diversion";
 import { getOrganizationBySlug } from "@/lib/organizations";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
@@ -10,6 +10,7 @@ type ListingRow = {
   count?: number | null;
   approximate_weight_lbs?: number | null;
   type?: string | null;
+  materials?: unknown;
 };
 
 type Metrics = {
@@ -22,10 +23,10 @@ function reduceMetrics(rows: ListingRow[] | null | undefined): Metrics {
   const safeRows = rows ?? [];
   const totals = safeRows.reduce<Metrics>(
     (acc, row) => {
-      const weight = normalizeWeight(row);
-      if (weight > 0) {
-        acc.pounds += weight;
-        acc.co2Kg += calculateCo2eKg(row.type ?? null, weight);
+      const summary = summarizeListingMaterials(row);
+      if (summary.totalWeight > 0) {
+        acc.pounds += summary.totalWeight;
+        acc.co2Kg += summary.totalCo2;
       }
       return acc;
     },
@@ -34,14 +35,6 @@ function reduceMetrics(rows: ListingRow[] | null | undefined): Metrics {
   totals.co2Kg = Number(totals.co2Kg.toFixed(2));
   totals.pounds = Number(totals.pounds.toFixed(2));
   return totals;
-}
-
-function normalizeWeight(row: ListingRow) {
-  const weight = Number(row.approximate_weight_lbs);
-  if (Number.isFinite(weight) && weight > 0) return weight;
-  const fallback = Number(row.count);
-  if (Number.isFinite(fallback) && fallback > 0) return fallback;
-  return 0;
 }
 
 function combineMetrics(a: Metrics, b: Metrics): Metrics {
@@ -67,7 +60,7 @@ export async function GET() {
 
     const { data: donatedRows } = await supabase
       .from("listings")
-      .select("count,approximate_weight_lbs,type,id")
+      .select("count,approximate_weight_lbs,type,id,materials")
       .eq("owner_id", user.id)
       .eq("status", "procured");
     const donatedMetrics = reduceMetrics(donatedRows);
@@ -89,7 +82,7 @@ export async function GET() {
       if (listingIds.length) {
         const { data } = await supabase
           .from("listings")
-          .select("id,count,approximate_weight_lbs,type")
+          .select("id,count,approximate_weight_lbs,type,materials")
           .in("id", listingIds)
           .eq("status", "procured");
         acceptedRows = data ?? [];
@@ -121,7 +114,7 @@ export async function GET() {
           await Promise.all([
             supabase
               .from("listings")
-              .select("id,count,approximate_weight_lbs,type")
+              .select("id,count,approximate_weight_lbs,type,materials")
               .in("owner_id", memberIds)
               .eq("status", "procured"),
             supabase
@@ -142,7 +135,7 @@ export async function GET() {
           if (orgListingIds.length) {
             const { data } = await supabase
               .from("listings")
-              .select("id,count,approximate_weight_lbs,type")
+              .select("id,count,approximate_weight_lbs,type,materials")
               .in("id", orgListingIds)
               .eq("status", "procured");
             orgAcceptedRows = data ?? [];

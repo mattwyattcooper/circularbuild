@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import ParallaxSection from "@/component/ParallaxSection";
-import { calculateCo2eKg } from "@/lib/diversion";
+import { summarizeListingMaterials } from "@/lib/diversion";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type SavedListing = {
@@ -23,6 +23,10 @@ type SavedListing = {
     location_text: string;
     available_until: string;
     photos: string[] | null;
+    materials?: unknown;
+    is_deconstruction?: boolean | null;
+    sale_type?: string | null;
+    sale_price?: number | null;
   } | null;
 };
 
@@ -190,15 +194,19 @@ export default function WishlistPage() {
             <div className="grid gap-4 md:grid-cols-2">
               {rows.map((row) => {
                 const listing = row.listing;
-                const weightLbs =
-                  listing &&
-                  typeof listing.approximate_weight_lbs === "number" &&
-                  Number.isFinite(listing.approximate_weight_lbs)
-                    ? listing.approximate_weight_lbs
-                    : 0;
-                const co2Kg = listing
-                  ? calculateCo2eKg(listing.type, weightLbs)
-                  : 0;
+                const saleType =
+                  listing?.sale_type === "resale"
+                    ? "resale"
+                    : ("donation" as const);
+                const salePrice =
+                  saleType === "resale" && listing?.sale_price
+                    ? Number(listing.sale_price)
+                    : null;
+                const {
+                  entries: materials,
+                  totalWeight,
+                  totalCo2,
+                } = summarizeListingMaterials(listing ?? {});
                 return (
                   <div
                     key={row.id}
@@ -218,10 +226,60 @@ export default function WishlistPage() {
                         <p className="text-xs text-emerald-100/70">
                           Available until {listing?.available_until ?? "—"}
                         </p>
-                        {weightLbs > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-emerald-100/80">
+                          <span
+                            className={`rounded-full border px-3 py-1 ${
+                              saleType === "resale"
+                                ? "border-amber-200/60 bg-amber-500/10 text-amber-100"
+                                : "border-emerald-200/40 bg-emerald-500/10 text-emerald-100"
+                            }`}
+                          >
+                            {saleType === "resale" ? "Resale" : "Donation"}
+                          </span>
+                          {listing?.is_deconstruction && (
+                            <span className="rounded-full border border-cyan-200/60 bg-cyan-500/10 px-3 py-1 text-cyan-100">
+                              Deconstruction
+                            </span>
+                          )}
+                        </div>
+                        {materials.length > 0 && (
+                          <div className="mt-2 space-y-1 text-xs text-emerald-100/75">
+                            {materials.slice(0, 3).map((material) => (
+                              <p
+                                key={`${material.type}-${material.weight_lbs}`}
+                              >
+                                {material.type} —{" "}
+                                {material.weight_lbs.toLocaleString()} lbs
+                                {material.co2e_kg > 0
+                                  ? ` • ${material.co2e_kg.toFixed(1)} kg CO₂e`
+                                  : ""}
+                              </p>
+                            ))}
+                            {materials.length > 3 && (
+                              <p className="text-emerald-100/50">
+                                +{materials.length - 3} more material
+                                {materials.length - 3 > 1 ? "s" : ""}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {totalWeight > 0 && (
                           <p className="text-xs text-emerald-100/70">
-                            ≈ {weightLbs.toLocaleString()} lbs •{" "}
-                            {co2Kg.toFixed(1)} kg CO₂e
+                            Total ≈ {totalWeight.toLocaleString()} lbs •{" "}
+                            {totalCo2.toFixed(1)} kg CO₂e
+                          </p>
+                        )}
+                        {saleType === "resale" && (
+                          <p className="text-xs text-amber-100/80">
+                            {salePrice
+                              ? `Requested $${salePrice.toLocaleString(
+                                  undefined,
+                                  {
+                                    maximumFractionDigits: 0,
+                                  },
+                                )}. `
+                              : ""}
+                            Payment must be negotiated and exchanged in person.
                           </p>
                         )}
                         <p className="text-xs text-emerald-100/60">

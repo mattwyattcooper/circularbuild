@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { type NextRequest, NextResponse } from "next/server";
 
+import { parseMaterialStats } from "@/lib/diversion";
 import { expirePastListings } from "@/lib/listings";
 import { getOrganizationBySlug } from "@/lib/organizations";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
@@ -34,6 +35,10 @@ type ListingRow = {
   lat: number | null;
   lng: number | null;
   created_at: string;
+  materials?: unknown;
+  is_deconstruction?: boolean | null;
+  sale_type?: string | null;
+  sale_price?: number | null;
 };
 
 export async function POST(req: NextRequest) {
@@ -70,7 +75,7 @@ export async function POST(req: NextRequest) {
     const { data: listings, error } = await supabase
       .from<ListingRow>("listings")
       .select(
-        "id,owner_id,title,type,shape,count,approximate_weight_lbs,description,location_text,available_until,photos,lat,lng,created_at",
+        "id,owner_id,title,type,shape,count,approximate_weight_lbs,description,location_text,available_until,photos,lat,lng,created_at,materials,is_deconstruction,sale_type,sale_price",
       )
       .eq("status", "active")
       .order("created_at", { ascending: false });
@@ -92,7 +97,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (type && typeof type === "string" && type.trim().length > 0) {
-      results = results.filter((l) => l.type === type);
+      results = results.filter((l) => {
+        if (l.type === type) return true;
+        const materials = parseMaterialStats(l.materials);
+        return materials.some((entry) => entry.type === type);
+      });
     }
 
     if (origin) {

@@ -269,7 +269,37 @@ const SECTIONS: TermsSection[] = [
     ),
   },
   {
-    title: "16. Dispute resolution and arbitration",
+    title: "16. Resale listings and offline payments",
+    body: (
+      <>
+        <p>
+          Some donors may opt to list materials as <strong>resale</strong>{" "}
+          rather than pure donations. CircularBuild does not broker, process, or
+          guarantee any payment connected to these listings. All terms,
+          negotiations, and transfers of funds occur solely between the donor
+          and recipient, and must be completed offline.
+        </p>
+        <p>
+          By participating in a resale listing you acknowledge that (a) any
+          monetary exchange is negotiated directly between the parties, (b)
+          CircularBuild is not a party to the transaction, (c) no escrow, refund
+          processing, or dispute resolution services are provided by
+          CircularBuild, and (d) you will comply with all applicable tax and
+          regulatory obligations that stem from the exchange of funds or
+          materials.
+        </p>
+        <p>
+          You agree to release and indemnify CircularBuild from any claims,
+          losses, or damages arising from resale arrangements, including but not
+          limited to disagreements about quality, payment, delivery, or misuse
+          of funds. If you cannot fulfil a resale commitment, notify the other
+          party promptly and update or remove the listing.
+        </p>
+      </>
+    ),
+  },
+  {
+    title: "17. Dispute resolution and arbitration",
     body: (
       <>
         <p>
@@ -289,7 +319,7 @@ const SECTIONS: TermsSection[] = [
     ),
   },
   {
-    title: "17. Severability and entire agreement",
+    title: "18. Severability and entire agreement",
     body: (
       <>
         <p>
@@ -318,5 +348,5 @@ const SECTIONS: TermsSection[] = [
 ];
 
 export default function TermsPage() {
-  return <TermsView sections={SECTIONS} lastUpdated="October 12, 2025" />;
+  return <TermsView sections={SECTIONS} lastUpdated="January 15, 2026" />;
 }

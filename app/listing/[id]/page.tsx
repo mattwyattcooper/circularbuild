@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import { cleanListingDescription } from "@/lib/cleanListingDescription";
-import { calculateCo2eKg } from "@/lib/diversion";
+import { summarizeListingMaterials } from "@/lib/diversion";
 import { getOrganizationBySlug } from "@/lib/organizations";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
@@ -37,6 +37,10 @@ type Listing = {
   lng: number | null;
   created_at: string;
   owner?: ListingOwner;
+  materials?: unknown;
+  is_deconstruction?: boolean | null;
+  sale_type?: string | null;
+  sale_price?: number | null;
 };
 
 export default function ListingDetail() {
@@ -165,12 +169,16 @@ export default function ListingDetail() {
   const owner: ListingOwner = l.owner ?? null;
 
   const visibleDescription = cleanListingDescription(l.description);
-  const weightLbs =
-    typeof l.approximate_weight_lbs === "number" &&
-    Number.isFinite(l.approximate_weight_lbs)
-      ? l.approximate_weight_lbs
-      : 0;
-  const co2Kg = calculateCo2eKg(l.type, weightLbs);
+  const saleType = l.sale_type === "resale" ? "resale" : ("donation" as const);
+  const salePrice =
+    saleType === "resale" && typeof l.sale_price === "number"
+      ? l.sale_price
+      : null;
+  const {
+    entries: materials,
+    totalWeight,
+    totalCo2,
+  } = summarizeListingMaterials(l);
   const ownerOrganizationName = owner?.organization_slug
     ? (getOrganizationBySlug(owner.organization_slug)?.name ?? null)
     : null;
@@ -203,21 +211,89 @@ export default function ListingDetail() {
           />
         )}
 
+        <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-emerald-100/80">
+          <span
+            className={`rounded-full border px-3 py-1 ${
+              saleType === "resale"
+                ? "border-amber-200/60 bg-amber-500/15 text-amber-100"
+                : "border-emerald-200/40 bg-emerald-500/15 text-emerald-100"
+            }`}
+          >
+            {saleType === "resale" ? "Resale" : "Donation"}
+          </span>
+          {l.is_deconstruction && (
+            <span className="rounded-full border border-cyan-200/60 bg-cyan-500/15 px-3 py-1 text-cyan-100">
+              Deconstruction
+            </span>
+          )}
+        </div>
         <div className="mt-4 text-sm text-emerald-100/90">
           {l.type} • {l.shape} • {l.count} pcs
         </div>
         <div className="text-xs text-emerald-100/70">
           Available until {l.available_until} • {l.location_text}
         </div>
-        {weightLbs > 0 && (
+        {totalWeight > 0 && (
           <div className="mt-1 text-xs text-emerald-100/70">
-            Approx. {weightLbs.toLocaleString()} lbs • {co2Kg.toFixed(1)} kg
-            CO₂e saved
+            Approx. {totalWeight.toLocaleString()} lbs • {totalCo2.toFixed(1)}{" "}
+            kg CO₂e saved
           </div>
+        )}
+        {saleType === "resale" ? (
+          <div className="mt-4 rounded-2xl border border-amber-200/50 bg-amber-500/10 p-4 text-sm text-amber-100/90">
+            <p className="font-semibold uppercase tracking-[0.3em] text-amber-200">
+              Resale terms
+            </p>
+            <p className="mt-2">
+              {salePrice
+                ? `Requested contribution: $${salePrice.toLocaleString(
+                    undefined,
+                    {
+                      maximumFractionDigits: 0,
+                    },
+                  )}. `
+                : ""}
+              Buyers and sellers negotiate the final amount directly and must
+              exchange any funds in person. CircularBuild does not process or
+              guarantee payments for resale listings.
+            </p>
+          </div>
+        ) : (
+          <p className="mt-4 text-xs text-emerald-100/80">
+            Listed as a donation. Recipients coordinate pickup logistics and no
+            money changes hands through CircularBuild.
+          </p>
         )}
         <p className="mt-4 text-sm leading-6 text-emerald-100/90">
           {visibleDescription || "No additional description provided."}
         </p>
+        {materials.length > 0 && (
+          <div className="mt-6 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-emerald-100/85">
+            <h2 className="text-base font-semibold text-white">
+              Material breakdown
+            </h2>
+            <ul className="mt-3 space-y-2 text-sm">
+              {materials.map((material) => (
+                <li
+                  key={`${material.type}-${material.weight_lbs}`}
+                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-emerald-100/85"
+                >
+                  <span className="font-medium">{material.type}</span>
+                  <span>
+                    {material.weight_lbs.toLocaleString()} lbs
+                    {material.co2e_kg > 0
+                      ? ` • ${material.co2e_kg.toFixed(1)} kg CO₂e`
+                      : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-emerald-100/70">
+              Total ≈ {totalWeight.toLocaleString()} lbs • {totalCo2.toFixed(1)}{" "}
+              kg CO₂e
+            </p>
+          </div>
+        )}
 
         <div className="mt-6 flex flex-wrap gap-3">
           <button
