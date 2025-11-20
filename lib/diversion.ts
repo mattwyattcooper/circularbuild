@@ -87,35 +87,28 @@ export function parseMaterialStats(value: unknown): MaterialStat[] {
   return rawEntries
     .map((entry) => {
       if (!entry || typeof entry !== "object") return null;
-      const label = normalizeMaterialLabel(
-        typeof (entry as Record<string, unknown>).type === "string"
-          ? (entry as Record<string, unknown>).type
-          : typeof (entry as Record<string, unknown>).material === "string"
-            ? (entry as Record<string, unknown>).material
-            : null,
-      );
+      const record = entry as Record<string, unknown>;
+      const rawLabel =
+        typeof record.type === "string"
+          ? record.type
+          : typeof record.material === "string"
+            ? record.material
+            : null;
+      const label = normalizeMaterialLabel(rawLabel);
       if (!label) return null;
       const weightCandidate =
-        typeof (entry as Record<string, unknown>).weight_lbs === "number"
-          ? (entry as Record<string, unknown>).weight_lbs
-          : typeof (entry as Record<string, unknown>).weightLbs === "number"
-            ? (entry as Record<string, unknown>).weightLbs
-            : Number(
-                (entry as Record<string, unknown>).weight ??
-                  (entry as Record<string, unknown>).weight_lb ??
-                  (entry as Record<string, unknown>).weightLb,
-              );
+        typeof record.weight_lbs === "number"
+          ? record.weight_lbs
+          : typeof record.weightLbs === "number"
+            ? record.weightLbs
+            : Number(record.weight ?? record.weight_lb ?? record.weightLb);
       if (!Number.isFinite(weightCandidate) || weightCandidate <= 0) {
         return null;
       }
       const co2Value =
-        typeof (entry as Record<string, unknown>).co2e_kg === "number"
-          ? (entry as Record<string, unknown>).co2e_kg
-          : Number(
-              (entry as Record<string, unknown>).co2 ??
-                (entry as Record<string, unknown>).co2e ??
-                (entry as Record<string, unknown>).co2Kg,
-            );
+        typeof record.co2e_kg === "number"
+          ? record.co2e_kg
+          : Number(record.co2 ?? record.co2e ?? record.co2Kg);
       const co2e =
         Number.isFinite(co2Value) && co2Value >= 0
           ? Number(co2Value)
