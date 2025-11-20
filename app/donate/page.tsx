@@ -492,14 +492,20 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
                   </label>
                   {saleType === "resale" && (
                     <div className="mt-4 space-y-2">
-                      <input
-                        type="number"
-                        min={1}
-                        className="w-full rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                        placeholder="Asking price (USD)"
-                        value={salePrice}
-                        onChange={(e) => setSalePrice(e.target.value)}
-                      />
+                      <label className="flex flex-col gap-2">
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                          Requested price (USD)
+                        </span>
+                        <input
+                          type="number"
+                          min={1}
+                          className="w-full rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                          placeholder="e.g., 250"
+                          value={salePrice}
+                          onChange={(e) => setSalePrice(e.target.value)}
+                          required={saleType === "resale"}
+                        />
+                      </label>
                       <p className="text-xs text-emerald-100/70">
                         Payments are renegotiable and must be exchanged in
                         person. Transactions do not run through CircularBuild.
