@@ -3,7 +3,11 @@ import Link from "next/link";
 
 import HeroSection from "@/component/HeroSection";
 import ListingCard, { type ListingCardData } from "@/component/ListingCard";
-import { calculateCo2eKg, summarizeListingMaterials } from "@/lib/diversion";
+import {
+  calculateCo2eKg,
+  formatPounds,
+  summarizeListingMaterials,
+} from "@/lib/diversion";
 import { expirePastListings } from "@/lib/listings";
 import { getOrganizationBySlug } from "@/lib/organizations";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
@@ -32,12 +36,6 @@ const QUICK_NAV = [
     description: "FAQs, guidelines, and direct contact with our team.",
     href: "/faqs",
   },
-];
-
-const FEATURED_STATS = [
-  { label: "Materials diverted", value: "2.8M lbs" },
-  { label: "Active donors", value: "640" },
-  { label: "Avg. pickup time", value: "3.5 days" },
 ];
 
 const FALLBACK_IMAGE =
@@ -163,6 +161,15 @@ export default async function Home() {
   const supabase = getSupabaseAdminClient();
   await expirePastListings();
 
+  const [{ count: profileCount }, { data: listingWeightRows }] =
+    await Promise.all([
+      supabase.from("profiles").select("id", {
+        count: "exact",
+        head: true,
+      }),
+      supabase.from("listings").select("approximate_weight_lbs"),
+    ]);
+
   const { data: listings } = await supabase
     .from("listings")
     .select(
@@ -259,9 +266,30 @@ export default async function Home() {
 
   const hasStories = stories.length > 0;
 
+  const totalDivertedLbs = (listingWeightRows ?? []).reduce((sum, row) => {
+    const weight = Number(row?.approximate_weight_lbs);
+    if (Number.isFinite(weight) && weight > 0) {
+      return sum + weight;
+    }
+    return sum;
+  }, 0);
+
+  const heroStats = [
+    {
+      label: "Materials diverted",
+      value: `${formatPounds(totalDivertedLbs)} lbs`,
+    },
+    {
+      label: "Active users",
+      value:
+        typeof profileCount === "number" ? profileCount.toLocaleString() : "—",
+    },
+    { label: "Avg. pickup time", value: "3.5 days" },
+  ];
+
   return (
     <main className="flex flex-col bg-slate-950 text-white">
-      <HeroSection stats={FEATURED_STATS} />
+      <HeroSection stats={heroStats} />
 
       <section className="relative isolate w-full border-t border-white/10 py-12 sm:py-14 lg:py-16">
         <div className="absolute inset-0">
