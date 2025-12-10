@@ -12,6 +12,9 @@ import { expirePastListings } from "@/lib/listings";
 import { getOrganizationBySlug } from "@/lib/organizations";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const QUICK_NAV = [
   {
     label: "Explore marketplace",
@@ -176,7 +179,7 @@ export default async function Home() {
       "id, owner_id, title, type, shape, location_text, available_until, photos, approximate_weight_lbs, materials, is_deconstruction, sale_type, sale_price",
     )
     .eq("status", "active")
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: false })
     .limit(5);
 
   const { data: newsPosts } = await supabase
