@@ -638,11 +638,11 @@ export default function SearchPage() {
                                   {ownerOrganizationName}
                                 </span>
                               )}
-                              {owner.bio && (
-                                <span className="text-xs text-emerald-100/70">
-                                  {owner.bio}
-                                </span>
-                              )}
+                              <span className="text-xs text-emerald-100/70">
+                                {owner.bio && owner.bio.length > 0
+                                  ? owner.bio
+                                  : "This donor hasn't added a bio yet."}
+                              </span>
                             </div>
                           </div>
                         )}

@@ -195,6 +195,7 @@ export default async function Home() {
       name: string | null;
       avatar_url: string | null;
       organization_slug: string | null;
+      bio: string | null;
     }
   > = {};
 
@@ -209,7 +210,7 @@ export default async function Home() {
   if (ownerIds.length > 0) {
     const { data: ownerRows } = await supabase
       .from("profiles")
-      .select("id,name,avatar_url,organization_slug")
+      .select("id,name,avatar_url,organization_slug,bio")
       .in("id", ownerIds);
     owners = (ownerRows ?? []).reduce<typeof owners>((acc, row) => {
       acc[row.id] = {
@@ -217,6 +218,7 @@ export default async function Home() {
         name: row.name ?? null,
         avatar_url: row.avatar_url ?? null,
         organization_slug: row.organization_slug ?? null,
+        bio: row.bio ?? null,
       };
       return acc;
     }, {});
@@ -243,18 +245,18 @@ export default async function Home() {
         listing.sale_type === "resale" ? "resale" : ("donation" as const),
       salePrice:
         typeof listing.sale_price === "number" ? listing.sale_price : null,
-      owner:
-        listing.owner_id && owners[listing.owner_id]
-          ? {
-              id: owners[listing.owner_id].id,
-              name: owners[listing.owner_id].name ?? undefined,
-              avatarUrl: owners[listing.owner_id].avatar_url ?? undefined,
-              organizationName:
-                getOrganizationBySlug(
-                  owners[listing.owner_id].organization_slug ?? undefined,
-                )?.name ?? undefined,
-            }
-          : undefined,
+      owner: listing.owner_id
+        ? {
+            id: listing.owner_id,
+            name: owners[listing.owner_id]?.name ?? null,
+            avatarUrl: owners[listing.owner_id]?.avatar_url ?? null,
+            bio: owners[listing.owner_id]?.bio ?? null,
+            organizationName:
+              getOrganizationBySlug(
+                owners[listing.owner_id]?.organization_slug ?? undefined,
+              )?.name ?? undefined,
+          }
+        : undefined,
     };
   });
 

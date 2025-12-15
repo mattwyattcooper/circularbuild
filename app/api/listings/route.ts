@@ -159,6 +159,12 @@ export async function POST(request: Request) {
         .getPublicUrl(key);
       photos.push(data.publicUrl);
     }
+    if (photos.length === 0) {
+      return NextResponse.json(
+        { error: "Please include at least one listing photo." },
+        { status: 400 },
+      );
+    }
 
     const detailedDescription = `${description}
 

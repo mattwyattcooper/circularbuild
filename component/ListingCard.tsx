@@ -25,6 +25,7 @@ export type ListingCardData = {
     name?: string | null;
     avatarUrl?: string | null;
     organizationName?: string | null;
+    bio?: string | null;
   };
 };
 
@@ -167,6 +168,11 @@ export default function ListingCard({ listing }: Props) {
                     {listing.owner.organizationName}
                   </span>
                 )}
+                <span className="text-[11px] text-emerald-100/70">
+                  {listing.owner.bio && listing.owner.bio.length > 0
+                    ? listing.owner.bio
+                    : "This donor hasn't added a bio yet."}
+                </span>
               </div>
             </Link>
           )}

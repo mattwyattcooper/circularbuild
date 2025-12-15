@@ -85,6 +85,9 @@ export default function DonatePage() {
       if (!signature.trim()) throw new Error("Signature is required.");
       if (!consentContact)
         throw new Error("Consent to be contacted is required.");
+      if (!files || files.length === 0) {
+        throw new Error("Please upload at least one photo of the donation.");
+      }
 
       const normalizedMaterials = materials
         .map((entry) => ({
