@@ -247,7 +247,11 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
         body: formData,
       });
       const rawResponse = await response.text();
-      let payload: { error?: string; message?: string } | null = null;
+      let payload: {
+        error?: string;
+        message?: string;
+        requiresProfile?: boolean;
+      } | null = null;
       if (rawResponse) {
         try {
           payload = JSON.parse(rawResponse) as {
