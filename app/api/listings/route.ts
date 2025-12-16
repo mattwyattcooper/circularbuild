@@ -13,6 +13,33 @@ export async function POST(request: Request) {
   try {
     const user = await requireUser();
     const formData = await request.formData();
+    const supabase = getSupabaseAdminClient();
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id,name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      return NextResponse.json(
+        { error: profileError.message },
+        { status: 400 },
+      );
+    }
+
+    const hasName =
+      typeof profile?.name === "string" && profile.name.trim().length > 0;
+    if (!hasName) {
+      return NextResponse.json(
+        {
+          error:
+            "Please finish setting up your profile before publishing listings.",
+          requiresProfile: true,
+        },
+        { status: 403 },
+      );
+    }
 
     const title = String(formData.get("title") ?? "").trim();
     const type = String(formData.get("type") ?? "").trim();
@@ -136,8 +163,6 @@ export async function POST(request: Request) {
 
     const lat = typeof latValue === "string" ? Number(latValue) : null;
     const lng = typeof lngValue === "string" ? Number(lngValue) : null;
-
-    const supabase = getSupabaseAdminClient();
 
     const photos: string[] = [];
     const photoEntries = formData.getAll("photos");

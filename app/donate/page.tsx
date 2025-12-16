@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 
 import AuthWall from "@/component/AuthWall";
 import ParallaxSection from "@/component/ParallaxSection";
@@ -23,6 +23,12 @@ function daysFromNowISO(days: number) {
 
 const MAX_MATERIAL_ENTRIES = 4;
 type MaterialEntry = { material: string; weight: string };
+type ProfileRequirementStatus =
+  | "idle"
+  | "checking"
+  | "ready"
+  | "incomplete"
+  | "error";
 
 export default function DonatePage() {
   const authStatus = useRequireAuth();
@@ -47,6 +53,9 @@ export default function DonatePage() {
   // ----- ui state -----
   const [msg, setMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [profileStatus, setProfileStatus] =
+    useState<ProfileRequirementStatus>("idle");
+  const [profileStatusMessage, setProfileStatusMessage] = useState("");
 
   const addMaterialEntry = () => {
     setMaterials((prev) => {
@@ -71,10 +80,68 @@ export default function DonatePage() {
     });
   };
 
+  const fetchProfileStatus = useCallback(async () => {
+    if (authStatus !== "authenticated") return;
+    setProfileStatus("checking");
+    setProfileStatusMessage("");
+    try {
+      const response = await fetch("/api/account/profile", {
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        const fallbackMessage =
+          response.status === 401
+            ? "Please sign in again to continue."
+            : "Unable to verify your account profile.";
+        throw new Error(fallbackMessage);
+      }
+      const data = (await response.json()) as {
+        profile?: { name?: string | null } | null;
+      };
+      const profile = data?.profile ?? null;
+      const hasName =
+        typeof profile?.name === "string" && profile.name.trim().length > 0;
+      if (hasName) {
+        setProfileStatus("ready");
+      } else {
+        setProfileStatus("incomplete");
+        setProfileStatusMessage(
+          "Add your name on the Account page before publishing donations.",
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to verify account profile.";
+      setProfileStatus("error");
+      setProfileStatusMessage(message);
+    }
+  }, [authStatus]);
+
+  useEffect(() => {
+    if (authStatus !== "authenticated") {
+      setProfileStatus("idle");
+      setProfileStatusMessage("");
+      return;
+    }
+    void fetchProfileStatus();
+  }, [authStatus, fetchProfileStatus]);
+
+  const recheckProfileStatus = () => {
+    void fetchProfileStatus();
+  };
+
   async function submit() {
     setMsg("");
     setSubmitting(true);
     try {
+      if (profileStatus !== "ready") {
+        throw new Error(
+          "Please complete your account profile before publishing a listing.",
+        );
+      }
       if (!title.trim()) throw new Error("Title is required.");
       if (!shape.trim()) throw new Error("Shape is required.");
       if (!available)
@@ -179,12 +246,37 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
         method: "POST",
         body: formData,
       });
-      const payload = (await response.json()) as {
-        error?: string;
-        message?: string;
-      };
+      const rawResponse = await response.text();
+      let payload: { error?: string; message?: string } | null = null;
+      if (rawResponse) {
+        try {
+          payload = JSON.parse(rawResponse) as {
+            error?: string;
+            message?: string;
+          };
+        } catch (error) {
+          console.warn("Non-JSON response from /api/listings", error);
+        }
+      }
       if (!response.ok) {
-        throw new Error(payload?.error ?? "Unable to publish listing.");
+        if (payload?.requiresProfile) {
+          setProfileStatus("incomplete");
+          setProfileStatusMessage(
+            "Please complete your account profile before publishing donations.",
+          );
+        }
+        const unauthorizedMessage =
+          response.status === 401 || response.status === 403
+            ? "You are not authorized to publish listings. Please sign in again."
+            : null;
+        const fallbackMessage =
+          "We couldn’t publish your listing. Double-check the required fields and try again.";
+        throw new Error(
+          payload?.error ??
+            unauthorizedMessage ??
+            (rawResponse?.trim() || null) ??
+            fallbackMessage,
+        );
       }
 
       setMsg(payload?.message ?? "✅ Listing published.");
@@ -207,7 +299,10 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
     } catch (error) {
       console.error(error);
       const message = error instanceof Error ? error.message : "Unknown error";
-      setMsg(`Error: ${message}`);
+      const friendlyMessage = message.startsWith("Please ")
+        ? message
+        : `We couldn't publish your listing. ${message}`;
+      setMsg(`Error: ${friendlyMessage}`);
     } finally {
       setSubmitting(false);
     }
@@ -242,6 +337,81 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
               nextPath="/donate"
               secondaryHref="/"
             />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (authStatus === "authenticated" && profileStatus === "checking") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-emerald-950 text-emerald-100">
+        Verifying your account profile…
+      </main>
+    );
+  }
+
+  if (authStatus === "authenticated" && profileStatus === "error") {
+    return (
+      <main className="relative min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+        <div className="absolute inset-0 opacity-40" aria-hidden>
+          <div className="h-full w-full bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_55%)]" />
+        </div>
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16">
+          <div className="w-full max-w-lg rounded-3xl border border-white/15 bg-white/10 p-8 text-center shadow-2xl backdrop-blur-lg">
+            <h1 className="text-xl font-semibold text-white">
+              We can&apos;t confirm your account
+            </h1>
+            <p className="mt-4 text-sm text-emerald-100/80">
+              {profileStatusMessage ||
+                "Please try again or refresh the page before donating."}
+            </p>
+            <button
+              type="button"
+              onClick={recheckProfileStatus}
+              className="mt-6 inline-flex items-center justify-center rounded-full bg-white/20 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/30"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (authStatus === "authenticated" && profileStatus === "incomplete") {
+    return (
+      <main className="relative min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+        <div className="absolute inset-0 opacity-40" aria-hidden>
+          <div className="h-full w-full bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_55%)]" />
+        </div>
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16">
+          <div className="w-full max-w-xl space-y-6 rounded-3xl border border-white/15 bg-white/10 p-8 text-center shadow-2xl backdrop-blur-lg">
+            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
+              Action required
+            </span>
+            <h1 className="text-2xl font-bold text-white">
+              Finish your profile before donating
+            </h1>
+            <p className="text-sm text-emerald-100/80">
+              {profileStatusMessage ||
+                "Add your name and organization details on the Account page to let recipients know who they are coordinating with."}
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Link
+                href="/account"
+                className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow transition hover:bg-emerald-400"
+              >
+                Update profile
+              </Link>
+              <button
+                type="button"
+                onClick={recheckProfileStatus}
+                className="inline-flex items-center justify-center rounded-full border border-white/30 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                I updated it
+              </button>
+            </div>
           </div>
         </div>
       </main>
