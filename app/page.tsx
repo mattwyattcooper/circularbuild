@@ -307,7 +307,7 @@ export default async function Home() {
               Navigate the platform
             </span>
             <h2 className="text-[clamp(2.25rem,3vw,3.5rem)] font-bold leading-tight">
-              Move your donations from surplus piles to new builds.
+              Move leftovers from basements and garages to neighbors who need them.
             </h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -351,8 +351,8 @@ export default async function Home() {
             </h2>
             <p className="text-sm text-emerald-100 sm:text-base">
               Preview a handful of active donations below. Sign in when
-              you&apos;re ready to save listings, chat directly with donors, and
-              coordinate pickups.
+              you&apos;re ready to save listings, chat directly with nearby
+              homeowners and community groups, and coordinate easy pickups.
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
@@ -400,11 +400,11 @@ export default async function Home() {
               Stories from the field
             </span>
             <h2 className="text-[clamp(2rem,3.5vw,3rem)] font-bold">
-              Donors and builders proving circular works at scale.
+              Neighbors and community crews proving circular works at every scale.
             </h2>
             <p className="text-sm text-emerald-100 sm:text-base">
               Coordinated pickups, transparent chat threads, and impact-ready
-              reporting keep reuse simple for both sides of the exchange.
+              reporting keep reuse simple for households, block clubs, and project leads alike.
             </p>
             <Link
               href="/news"
@@ -447,7 +447,7 @@ export default async function Home() {
                     id: "placeholder-story-2",
                     title: "Track diversion impact in real time",
                     excerpt:
-                      "Check back soon for highlights from donors and builders across the network.",
+                      "Check back soon for highlights from neighbors and community teams across the network.",
                   },
                 ].map((story) => (
                   <article
@@ -483,7 +483,8 @@ export default async function Home() {
           </h2>
           <p className="max-w-3xl text-sm text-emerald-100 sm:text-base">
             Create an account to publish donations, receive real-time interest
-            from builders, and share diversion data with your stakeholders.
+            from neighbors, mutual-aid organizers, and DIY clubs, and share
+            diversion data with your community.
           </p>
           <div className="flex flex-wrap gap-5 text-sm font-semibold">
             <Link

@@ -87,6 +87,7 @@ export default function DonatePage() {
     try {
       const response = await fetch("/api/account/profile", {
         cache: "no-store",
+        credentials: "include",
       });
       if (!response.ok) {
         const fallbackMessage =
@@ -202,6 +203,7 @@ export default function DonatePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ q: locationText }),
+        credentials: "include",
       });
       if (!geoRes.ok) throw new Error("Geocoding failed.");
       const g = await geoRes.json();
@@ -245,6 +247,7 @@ Consented to contact: ${consentContact ? "Yes" : "No"}`;
       const response = await fetch("/api/listings", {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
       const rawResponse = await response.text();
       let payload: {

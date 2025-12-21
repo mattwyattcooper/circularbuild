@@ -31,12 +31,12 @@ const GUIDING_VALUES = [
   {
     title: "Keep materials moving",
     description:
-      "We make reuse the default option by pairing surplus structural lumber, metals, and fixtures with builders who can deploy them immediately.",
+      "We make reuse the default option by pairing surplus structural lumber, metals, and fixtures with neighbors, homeowners, and volunteer crews who can deploy them immediately.",
   },
   {
     title: "Serve community-led projects",
     description:
-      "Grassroots organizations, student engineering clubs, and households tackling critical repairs deserve the same access to quality materials as large contractors.",
+      "Grassroots organizations, student engineering clubs, and households tackling critical repairs deserve the same access to quality materials as commercial contractors.",
   },
   {
     title: "A win-win for both sides",
@@ -86,8 +86,9 @@ const RESOURCE_TOPICS = [
           high-value materials is free and keeps resources in circulation.
         </li>
         <li>
-          <strong className="text-white">Keep crews moving:</strong> Builders
-          can source nearby stock versus waiting on volatile supply chains.
+          <strong className="text-white">Keep projects moving:</strong> DIYers,
+          neighbors, and builders can source nearby stock versus waiting on
+          volatile supply chains.
         </li>
         <li>
           <strong className="text-white">Empower community impact:</strong>
@@ -129,7 +130,7 @@ const STORY_POINTS = [
   },
   {
     heading: "An innovative solution to a growing problem",
-    copy: "CircularBuild bridges donors with high-quality leftovers and recipients who can turn them into resilient housing, community facilities, and learning labs. The platform manages intake, verification, location-aware search, and direct messaging so swaps stay simple and transparent—whether you’re a student in a design-build club, a social infrastructure organization, or a homeowner tackling a repair. Contractors and neighbors with leftover materials destined for landfill can join us in creating a more sustainable, efficient development industry worldwide.",
+    copy: "CircularBuild bridges donors with high-quality leftovers and recipients who can turn them into resilient housing, community facilities, and learning labs. The platform manages intake, verification, location-aware search, and direct messaging so swaps stay simple and transparent—whether you’re a student in a design-build club, a social infrastructure organization, or a homeowner tackling a repair. Homeowners, DIYers, and contractors with leftover materials destined for landfill can all join us in creating a more sustainable, efficient development industry worldwide.",
   },
 ];
 
@@ -150,16 +151,16 @@ export default function WhoWeArePage() {
               Our mission
             </span>
             <h1 className="text-[clamp(2.5rem,4.5vw,4rem)] font-extrabold leading-tight text-white">
-              We connect construction surplus with the people and projects who
-              need it most.
+              We connect renovation leftovers and construction surplus with the neighbors who need them most.
             </h1>
             <div className="space-y-4 text-base text-emerald-100">
               <p className="text-base sm:text-lg">
                 CircularBuild is the world’s first donation-based raw materials
                 reuse marketplace. We keep excess framing lumber, metals,
                 fixtures, and even light machinery in motion by linking generous
-                donors with homeowners, educators, and nonprofit teams
-                delivering human-centered infrastructure.
+                donors with homeowners, renters clearing out basements,
+                educators, and nonprofit teams delivering human-centered
+                infrastructure.
               </p>
               <p className="text-sm sm:text-base text-emerald-100/90">
                 In a world battling climate change, rising resource scarcity,
@@ -167,10 +168,10 @@ export default function WhoWeArePage() {
                 everyone to connect the circle.
               </p>
               <p className="text-sm sm:text-base text-emerald-100/90">
-                From local job sites to overseas humanitarian work, our team has
-                seen how a reliable pallet of materials can launch community
-                resilience projects. CircularBuild makes sure those materials
-                never go to waste again.
+                From weekend renovation leftovers to overseas humanitarian work,
+                our team has seen how a reliable pallet of materials can launch
+                community resilience projects. CircularBuild makes sure those
+                materials never go to waste again.
               </p>
             </div>
             <div className="flex flex-wrap gap-3 text-sm">
@@ -351,7 +352,7 @@ export default function WhoWeArePage() {
               How reuse delivers value
             </span>
             <h2 className="text-[clamp(2rem,3.5vw,3.2rem)] font-bold text-white">
-              Tap to see why donors and builders rely on CircularBuild.
+              Tap to see why donors, homeowners, and community crews rely on CircularBuild.
             </h2>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -379,10 +380,10 @@ export default function WhoWeArePage() {
             Ready to partner with us?
           </h2>
           <p className="max-w-3xl text-sm text-emerald-100 sm:text-base">
-            Whether you have a jobsite full of extras or you’re equipping a
-            service project, CircularBuild brings everyone to the same table.
-            List materials, discover donations, and share impact metrics with
-            your stakeholders.
+            Whether you&apos;re clearing out a garage, wrapping up a remodel, or
+            equipping a service project, CircularBuild brings everyone to the
+            same table. List materials, discover donations, and share impact
+            metrics with your stakeholders.
           </p>
           <div className="flex flex-wrap gap-3 text-sm">
             <Link
